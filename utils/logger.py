@@ -6,7 +6,7 @@ from aiologger import Logger
 from aiologger.handlers.streams import AsyncStreamHandler
 from aiologger.handlers.files import AsyncFileHandler
 from aiologger.formatters.base import Formatter
-from aiologger.levels import LogLevel  # Импортируем LogLevel
+from aiologger.levels import LogLevel
 
 # Создаем директорию для логов, если её нет
 LOGS_DIR = Path("logs")

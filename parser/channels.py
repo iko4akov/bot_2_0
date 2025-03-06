@@ -22,7 +22,5 @@ async def fetch_messages(client, channel_username, limit=10):
 
     except ChannelPrivateError as e:
         logger.info(f"{e}")
-        print(f"Канал {channel_username} является приватным или недоступным.")
     except Exception as e:
-        logging.error(e)
-        print(f"Ошибка при получении сообщений: {e}")
+        logging.error(f"{e}")
