@@ -1,7 +1,10 @@
+#!/home/ko4ak/telega/bot_1.0/.venv/bin/python3
 import asyncio
+
 from parser.client import TelegramClientManager
 from parser.channels import fetch_messages
 from settings.config import CHANNELS
+
 
 async def main():
     client_manager = TelegramClientManager()
@@ -10,13 +13,10 @@ async def main():
 
     client = await client_manager.get_client()
 
-    # Обрабатываем каждый канал
     for channel in CHANNELS:
         await fetch_messages(client, channel)
 
-    # Останавливаем клиента
     await client_manager.stop()
 
 if __name__ == '__main__':
     asyncio.run(main())
-
