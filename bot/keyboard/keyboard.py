@@ -4,7 +4,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardBu
 class UserKeyboard:
     def __init__(self):
         self.inline_markup = InlineKeyboardMarkup(inline_keyboard=self.__inline_button())
-        self.button_markup = ReplyKeyboardMarkup(keyboard=self.__button())
+        self.button_markup = ReplyKeyboardMarkup(keyboard=self.__button(), resize_keyboard=True)
     @staticmethod
     def __inline_button():
         keyboard_inline = [

@@ -29,4 +29,3 @@ async def menu(message: Message):
     Просто выкидывает меню команда: Меню
     """
     await message.answer(INFO_MESSAGE, reply_markup=kb.inline_markup)
-    await message.answer(INFO_MESSAGE, reply_markup=kb.button_markup)
