@@ -136,6 +136,9 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+logs
+
+*.session
 
 # Spyder project settings
 .spyderproject
@@ -143,6 +146,8 @@ venv.bak/
 
 # Rope project settings
 .ropeproject
+
+.session
 
 # mkdocs documentation
 /site
