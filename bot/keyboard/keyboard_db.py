@@ -1,18 +1,16 @@
-from typing import List, Coroutine
+from typing import List
 
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
-from database.models.models import Users
-from database.models.models import Post
+from database.models import Users, Channel
 
 
 class DBKeyboard:
-    def __init__(self, posts: List[Post], user: Users):
-        self.posts = posts
-        self.current_page = user.current_page
-        self.on_pages = user.on_pages
-        self.total_pages = len(self.posts) // self.on_pages + (1 if len(self.posts) % self.on_pages != 0 else 0)
-        self.len = len(self.posts)
+    def __init__(self, channels: List[Channel], user: Users):
+        self.channels = channels
+        self.on_pages = 9
+        self.total_pages = len(self.channels) // self.on_pages + (1 if len(self.channels) % self.on_pages != 0 else 0)
+        self.len = len(self.channels)
 
     def _get_navigator(self) -> List[InlineKeyboardButton]:
         row = []

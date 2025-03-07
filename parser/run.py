@@ -6,7 +6,7 @@ from parser.channels import fetch_messages
 from settings.config import CHANNELS
 
 
-async def main():
+async def start_parser():
     client_manager = TelegramClientManager()
 
     await client_manager.start()
@@ -19,4 +19,4 @@ async def main():
     await client_manager.stop()
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    asyncio.run(start_parser())

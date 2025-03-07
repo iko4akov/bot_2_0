@@ -3,10 +3,8 @@ import logging
 from aiogram import Router, types
 
 from bot import bot
-from database.models.models import Users
+from database.models import Users, Channel
 from bot.keyboard import kb
-from database.services.services import add_posts
-from parser.parser import parser_posts
 from database.services.crud_user import get_user, update_user
 
 parser_router = Router()

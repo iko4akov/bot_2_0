@@ -68,9 +68,7 @@ async def update_user(updated_user: Users) -> bool:
                 logger.warning(f"Пользователь с tg_id={updated_user.tg_id} не найден.")
                 return False
 
-            user.source = updated_user.source
-            user.target = updated_user.target
-            user.current_page = updated_user.current_page
+            user.username = updated_user.username
 
             await session.commit()
             return True

@@ -2,10 +2,10 @@ from typing import Callable, Awaitable
 
 from aiogram.types import Message
 
-from settings import conf
+from settings.config import ADMINS
 
 def is_admin(user_id: int) -> bool:
-    return user_id in conf.admins
+    return user_id in ADMINS
 
 
 def admin_required(handler: Callable[[Message], Awaitable[None]]) -> Callable[[Message], Awaitable[None]]:
