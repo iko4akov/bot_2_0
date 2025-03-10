@@ -19,10 +19,15 @@ class Users(Base):
 
     def to_dict(self) -> dict[str, Column[str] | Column[int]]:
         return {
-            'Ваш айди': self.tg_id,
-            'Ваш ник': self.username,
-            'Список ваших каналов': self.from_channels()
+            'tg_id': self.tg_id,
+            'username': self.username,
+            'channels': self.channel
         }
+
+    def info(self) -> str:
+        return f"Ваш айди: {self.tg_id}\n" \
+               f"Ваш ник: {self.username}\n" \
+               f"Список ваших каналов: {self.from_channels()}" \
 
     def from_channels(self) -> list:
         return [channel.name for channel in self.channel]

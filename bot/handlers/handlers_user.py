@@ -21,7 +21,7 @@ async def callback_user(callback_query: types.CallbackQuery):
     user: Users = await get_user(id)
     if user:
         await bot.answer_callback_query(callback_query.id, f'Готово')
-        await bot.send_message(callback_query.from_user.id, f'{user.to_dict()}')
+        await bot.send_message(callback_query.from_user.id, f'{user.info()}')
     else:
         await bot.answer_callback_query(callback_query.id, f'user not finded')
 
