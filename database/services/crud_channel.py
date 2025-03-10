@@ -15,8 +15,11 @@ async def add_channel(new_channel: Channel) -> bool:
     Возвращает True, если post успешно создан, и False в случае ошибки.
     """
     async for session in get_session():
+        if not session:
+            logger.error("Сессия не инициализирована")
+            return False
         try:
-            await session.add(new_channel)
+            session.add(new_channel)
             await session.commit()
             await session.refresh(new_channel)
             return True

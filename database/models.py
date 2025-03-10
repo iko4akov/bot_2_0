@@ -19,9 +19,13 @@ class Users(Base):
 
     def to_dict(self) -> dict[str, Column[str] | Column[int]]:
         return {
-            'tg_id': self.tg_id,
-            'username': self.username,
+            'Ваш айди': self.tg_id,
+            'Ваш ник': self.username,
+            'Список ваших каналов': self.from_channels()
         }
+
+    def from_channels(self) -> list:
+        return [channel.name for channel in self.channel]
 
     @classmethod
     def from_message(cls, message: Message):

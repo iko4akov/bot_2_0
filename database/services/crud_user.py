@@ -2,6 +2,8 @@ from typing import Optional, List
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import joinedload
+
 from database import get_session
 from database.models import Users
 from utils import logger
@@ -34,7 +36,8 @@ async def get_user(user_id: int) -> Optional[Users]:
     """
     async for session in get_session():
         try:
-            result = await session.execute(select(Users).where(Users.tg_id == user_id))
+            result = await session.execute(select(Users).options(joinedload(Users.channel)).
+                                           where(Users.tg_id == user_id))
             user = result.scalars().first()
             return user
         except SQLAlchemyError as e:

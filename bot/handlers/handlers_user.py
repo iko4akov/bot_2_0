@@ -5,7 +5,8 @@ from aiogram import Router, types
 from bot import bot
 from database.models import Users, Channel
 from bot.keyboard import kb
-from database.services.crud_user import get_user, update_user
+from database.services.crud_channel import add_channel, delete_channel
+from database.services.crud_user import get_user
 
 parser_router = Router()
 
@@ -27,25 +28,22 @@ async def callback_user(callback_query: types.CallbackQuery):
 @parser_router.message(lambda m: m.text.startswith("@"))
 async def set_target(message: types.Message) -> None:
     """
-    Ключевой обработчик, обрабатывает такие команды:
-        1. @<name_channel> - установить наименование вашего канала
-        """
-    user = await get_user(message.from_user.id)
-    user.target = message.text
-    await update_user(user)
-    await message.reply(f"Канал изменен на {user.target}", reply_markup=kb.inline_markup)
+    Добавляет канал в список для парсинга
+    """
+    channel = Channel()
+    channel.name = message.text[1:]
+    channel.user_id = message.from_user.id
+    await add_channel(channel)
+    await message.reply(f"Канал {message.text} добавлен в ваш список", reply_markup=kb.inline_markup)
 
 @parser_router.message(lambda m: m.text.startswith("-"))
 async def set_source(message: types.Message) -> None:
     """
-    Ключевой обработчик, обрабатывает такие команды:
-        1. -<name_channel> - установить канал из которого будем парсить посты
-        """
-    user = await get_user(message.from_user.id)
-    user.source = message.text[1:]
-    await update_user(user)
-    await message.reply(f"Канал изменен на {user.source}", reply_markup=kb.inline_markup)
-
+    Удалить канал из списка для парсинга
+    """
+    name_chnanel = message.text[1:]
+    await delete_channel(name_chnanel, message.from_user.id)
+    await message.reply(f"Канал '{name_chnanel}' удален из списка для парсинга ", reply_markup=kb.inline_markup)
 
 @parser_router.callback_query(lambda c: c.data == 'parsing')
 async def parsing(callback_query: types.CallbackQuery):
