@@ -16,12 +16,17 @@ CHANNELS = [
     "@okkosport"
 ]
 
+
 # Database
+POSTGRES_ADMIN_USER = os.getenv('POSTGRES_ADMIN_USER')
+POSTGRES_ADMIN_DB = os.getenv('POSTGRES_ADMIN_DB')
 POSTGRES_USER = os.getenv('POSTGRES_USER')
 POSTGRES_PASS = os.getenv('POSTGRES_PASS')
 POSTGRES_DB = os.getenv('POSTGRES_DB')
-POSTGRES_HOST = os.getenv('POSTGRES_HOST')
+POSTGRES_HOST: str | None = os.getenv('POSTGRES_HOST')
 POSTGRES_PORT = os.getenv('POSTGRES_PORT')
+
+
 
 # Check admin
 ADMINS = [os.getenv('ADMIN_TG1')]

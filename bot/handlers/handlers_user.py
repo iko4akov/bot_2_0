@@ -50,13 +50,12 @@ async def parsing(callback_query: types.CallbackQuery):
     """
     Команда парсинга из канала source
     """
-    await callback_query.answer("Начинаем собирать посты.....")
+    await callback_query.answer("Запускаем сбор и репост постов...")
     try:
         user = await get_user(callback_query.from_user.id)
 
-        posts = parser_posts(user.source)
+        channels = user.from_channels()
 
-        await add_posts(posts, callback_query.from_user.id)
 
         await bot.send_message(
             callback_query.from_user.id,

@@ -4,7 +4,7 @@ from aiogram.types import Message
 
 from database.models import Users
 from database.services.services import create_table
-from constants.constans import INFO_MESSAGE
+from bot.constants.constans import INFO_MESSAGE
 from bot.keyboard import kb
 from database.services.crud_user import create_user
 

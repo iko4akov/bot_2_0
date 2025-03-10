@@ -37,7 +37,7 @@ async def get_user(user_id: int) -> Optional[Users]:
     async for session in get_session():
         try:
             result = await session.execute(select(Users).options(joinedload(Users.channel)).
-                                           where(Users.tg_id == user_id))
+                                           where(Users.id == user_id))
             user = result.scalars().first()
             return user
         except SQLAlchemyError as e:
@@ -65,10 +65,10 @@ async def update_user(updated_user: Users) -> bool:
     """
     async for session in get_session():
         try:
-            result = await session.execute(select(Users).where(Users.tg_id == updated_user.tg_id))
+            result = await session.execute(select(Users).where(Users.id == updated_user.id))
             user = result.scalars().first()
             if not user:
-                logger.warning(f"Пользователь с tg_id={updated_user.tg_id} не найден.")
+                logger.warning(f"Пользователь с tg_id={updated_user.id} не найден.")
                 return False
 
             user.username = updated_user.username
@@ -88,7 +88,7 @@ async def delete_user(user_id: int) -> bool:
     """
     async for session in get_session():
         try:
-            result = await session.execute(select(Users).where(Users.tg_id == user_id))
+            result = await session.execute(select(Users).where(Users.id == user_id))
             user = result.scalars().first()
             if not user:
                 logger.warning(f"Пользователь с tg_id={user_id} не найден.")

@@ -5,7 +5,6 @@ from parser.client import TelegramClientManager
 from parser.channels import fetch_messages
 from settings.config import CHANNELS
 
-
 async def start_parser():
     client_manager = TelegramClientManager()
 

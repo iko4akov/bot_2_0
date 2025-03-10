@@ -3,13 +3,13 @@ import logging
 from typing import Optional
 from telethon import TelegramClient
 
-from settings.config import API_ID, API_HASH
+from parser.config import api_id, api_hash
 from utils import logger
 
 
 class TelegramClientManager:
     def __init__(self) -> None:
-        self.client = TelegramClient("session", API_ID, API_HASH)
+        self.client = TelegramClient("session", api_id, api_hash)
 
     async def start(self):
         if not self.client.is_connected():

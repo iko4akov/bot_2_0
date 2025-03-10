@@ -2,13 +2,13 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 
-from settings.config import BOT_TOKEN
+from bot.config import bot_token
 from utils import logger
 
 
 try:
     bot = Bot(
-        BOT_TOKEN,
+        bot_token,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
 
