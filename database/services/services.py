@@ -4,7 +4,7 @@ from sqlalchemy.exc import ProgrammingError
 from database.models import Base
 from utils import logger
 from database.config import CREATE_DB_COMMAND, POSTGRES_USER, CREATE_USER_COMMAND, POSTGRES_DB, POSTGRES_PASS, \
-    CREATE_DB_RAW_COMMAND
+    CHECK_DB_COMMAND
 
 
 async def initialize_database(admin_engine, engine):
@@ -16,7 +16,7 @@ async def initialize_database(admin_engine, engine):
     async with admin_engine.connect() as conn:
         logger.info("Подключено к PostgreSQL как администратор.")
         await create_user_db(conn)
-        await create_db(conn)
+        await create_database(conn)
         await admin_engine.dispose()
 
     await create_table(engine)
@@ -24,26 +24,28 @@ async def initialize_database(admin_engine, engine):
 async def create_user_db(conn):
     """Создает нового пользователя."""
     try:
-        await conn.execute(
+        result = await conn.execute(
             text(CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS))
         )
-        logger.info(f"Создан новый пользователь: {POSTGRES_USER}")
+        if "CREATE ROLE" in str(result):
+            logger.info(f"Создан новый пользователь: {POSTGRES_USER}")
+        else:
+            logger.info(f"Пользователь {POSTGRES_USER} уже существует.")
     except Exception as e:
         logger.error(f"Ошибка при создании пользователя: {e}")
 
-async def create_db(conn):
+async def create_database(conn):
     """Создает базу данных."""
     try:
-        # Проверка существования базы данных
-        await conn.execute(
-            text(CREATE_DB_COMMAND.format(dbname=POSTGRES_DB))
+        exists = await conn.scalar(
+            text("SELECT 1 FROM pg_database WHERE datname = :dbname"),
+            {"dbname": POSTGRES_DB}
         )
-
-        # Создание базы данных (вне транзакции)
-        await conn.execute(
-            text(CREATE_DB_RAW_COMMAND.format(dbname=POSTGRES_DB, username=POSTGRES_USER))
-        )
-        logger.info(f"Создана база данных: {POSTGRES_DB}")
+        if not exists:
+            await conn.execute(text(CREATE_DB_COMMAND))
+            logger.info(f"База данных {POSTGRES_DB} успешно создана.")
+        else:
+            logger.info(f"База данных {POSTGRES_DB} уже существует.")
     except Exception as e:
         logger.error(f"Ошибка при создании базы данных: {e}")
 

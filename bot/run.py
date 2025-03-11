@@ -9,7 +9,7 @@ from utils import logger
 
 
 async def start_bot() -> None:
-    logger.info("Bot starting....")
+    logger.info("Bot running....")
     dp.include_router(router)
     dp.include_router(parser_router)
     dp.include_router(admin_router)
