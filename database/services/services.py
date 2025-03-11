@@ -28,6 +28,7 @@ async def create_user_db(conn):
             text(CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS))
         )
         if "CREATE ROLE" in str(result):
+
             logger.info(f"Создан новый пользователь: {POSTGRES_USER}")
         else:
             logger.info(f"Пользователь {POSTGRES_USER} уже существует.")
@@ -38,12 +39,12 @@ async def create_database(conn):
     """Создает базу данных."""
     try:
         exists = await conn.scalar(
-            text(CHECK_DB_COMMAND),
+            text(CHECK_DB_COMMAND), {"dbname": POSTGRES_DB}
         )
 
         if not exists:
             await conn.execute(
-                text(CREATE_DB_COMMAND)
+                text(CREATE_DB_COMMAND.format(dbname=POSTGRES_DB, username=POSTGRES_USER))
             )
             logger.info(f"База данных {POSTGRES_DB} успешно создана.")
         else:
