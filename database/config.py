@@ -15,10 +15,35 @@ bot_url_db = f"postgresql+asyncpg://" \
                f"{POSTGRES_PORT}/" \
                f"{POSTGRES_DB}"
 
-# CREATE_USER_COMMAND = f"CREATE USER {POSTGRES_USER} WITH PASSWORD '{POSTGRES_PASS}';"
+# CREATE_USER_COMMAND = """
+# DO $$
+# BEGIN
+#     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{username}') THEN
+#         EXECUTE format('CREATE USER %I WITH PASSWORD %L', '{username}', '{password}');
+#     END IF;
+# END
+# $$;
+# """
 #
-# CREATE_DB_COMMAND = f"CREATE DATABASE {POSTGRES_DB} OWNER {POSTGRES_USER};"
+# CHECK_DB_COMMAND = """
+#     DO $$
+#     BEGIN
+#         IF EXISTS (SELECT FROM pg_database WHERE datname = '{dbname}') THEN
+#             RAISE NOTICE EXECUTE format ("Database already exists %'", '{dbname}')
+#     END
+# """
+#
+# CREATE_DB_COMMAND = """
+# DO $$
+# BEGIN
+#     IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '{dbname}') THEN
+#         EXECUTE format('CREATE DATABASE %I OWNER %L', '{dbname}', '{username}');
+#     END IF;
+# END
+# $$;
+# """
 
+# Команды для создания пользователя и базы данных
 CREATE_USER_COMMAND = """
 DO $$
 BEGIN
@@ -38,4 +63,5 @@ BEGIN
 END
 $$;
 """
+
 CREATE_DB_RAW_COMMAND = "CREATE DATABASE {dbname} OWNER {username};"

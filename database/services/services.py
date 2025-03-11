@@ -34,10 +34,12 @@ async def create_user_db(conn):
 async def create_db(conn):
     """Создает базу данных."""
     try:
+        # Проверка существования базы данных
         await conn.execute(
             text(CREATE_DB_COMMAND.format(dbname=POSTGRES_DB))
         )
 
+        # Создание базы данных (вне транзакции)
         await conn.execute(
             text(CREATE_DB_RAW_COMMAND.format(dbname=POSTGRES_DB, username=POSTGRES_USER))
         )
