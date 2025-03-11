@@ -38,11 +38,13 @@ async def create_database(conn):
     """Создает базу данных."""
     try:
         exists = await conn.scalar(
-            text("SELECT 1 FROM pg_database WHERE datname = :dbname"),
-            {"dbname": POSTGRES_DB}
+            text(CHECK_DB_COMMAND),
         )
+
         if not exists:
-            await conn.execute(text(CREATE_DB_COMMAND))
+            await conn.execute(
+                text(CREATE_DB_COMMAND)
+            )
             logger.info(f"База данных {POSTGRES_DB} успешно создана.")
         else:
             logger.info(f"База данных {POSTGRES_DB} уже существует.")
