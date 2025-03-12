@@ -23,3 +23,12 @@ CREATE_USER_COMMAND = "CREATE USER {username} WITH PASSWORD '{password}';"
 
 CHECK_DB_COMMAND = "SELECT 1 FROM pg_database WHERE datname = :dbname"
 CREATE_DB_COMMAND = "CREATE DATABASE {dbname} OWNER {username};"
+
+# Log messages
+SUCCESS_MESSAGE_USER = f"Создан новый пользователь: {POSTGRES_USER}"
+EXISTS_MESSAGE_USER = f"Пользователь {POSTGRES_USER} уже существует."
+ERROR_MESSAGE_USER="Ошибка при создании пользователя"
+
+SUCCESS_MESSAGE_DB = f"База данных {POSTGRES_DB} успешно создана."
+EXISTS_MESSAGE_DB = f"База данных {POSTGRES_DB} уже существует."
+ERROR_MESSAGE_DB = "Ошибка при создании базы данных"

@@ -1,10 +1,14 @@
+from typing import Optional
+
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from database.models import Base
 from utils import logger
 from database.config import CREATE_DB_COMMAND, POSTGRES_USER, CREATE_USER_COMMAND, POSTGRES_DB, POSTGRES_PASS, \
-    CHECK_DB_COMMAND, CHECK_USER_COMMAND
+    CHECK_DB_COMMAND, CHECK_USER_COMMAND, ERROR_MESSAGE_USER, EXISTS_MESSAGE_USER, SUCCESS_MESSAGE_USER, \
+    EXISTS_MESSAGE_DB, ERROR_MESSAGE_DB, SUCCESS_MESSAGE_DB
 
 
 async def initialize_database(admin_engine, engine):
@@ -15,44 +19,59 @@ async def initialize_database(admin_engine, engine):
     """
     async with admin_engine.connect() as conn:
         logger.info("Подключено к PostgreSQL как администратор.")
-        await create_user_db(conn)
-        await create_database(conn)
+        await execute_with_check(
+            conn=conn,
+            check_command=CHECK_USER_COMMAND,
+            create_command=CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS),
+            params={"username": POSTGRES_USER, "password": POSTGRES_PASS},
+            success_message=SUCCESS_MESSAGE_USER,
+            exists_message=EXISTS_MESSAGE_USER,
+            error_message=ERROR_MESSAGE_USER
+        )
+        await execute_with_check(
+            conn=conn,
+            check_command=CHECK_DB_COMMAND,
+            create_command=CREATE_DB_COMMAND.format(dbname=POSTGRES_DB, username=POSTGRES_USER),
+            params={"dbname": POSTGRES_DB, "username": POSTGRES_USER},
+            success_message=SUCCESS_MESSAGE_DB,
+            exists_message=EXISTS_MESSAGE_DB,
+            error_message=ERROR_MESSAGE_DB
+        )
+
         await admin_engine.dispose()
 
     await create_table(engine)
 
-async def create_user_db(conn):
-    """Создает нового пользователя."""
-    try:
-        exists = await conn.scalar(
-            text(CHECK_USER_COMMAND), {"username": POSTGRES_USER}
-        )
-        if not exists:
-            await conn.execute(
-                text(CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS))
-            )
-            logger.info(f"Создан новый пользователь: {POSTGRES_USER}")
-        else:
-            logger.info(f"Пользователь {POSTGRES_USER} уже существует.")
-    except Exception as e:
-        logger.error(f"Ошибка при создании пользователя: {e}")
+async def execute_with_check(
+        conn: Optional[AsyncSession],
+        check_command: str,
+        create_command: str,
+        params: dict,
+        success_message: str,
+        exists_message: str,
+        error_message: str
+):
+    """
+    Универсальная функция для выполнения проверки существования объекта
+    и его создания при необходимости.
 
-async def create_database(conn):
-    """Создает базу данных."""
+    :param conn: Подключение к базе данных.
+    :param check_command: SQL-команда для проверки существования объекта.
+    :param create_command: SQL-команда для создания объекта.
+    :param params: Параметры для SQL-команд.
+    :param success_message: Сообщение о успешном создании объекта.
+    :param exists_message: Сообщение о том, что объект уже существует.
+    :param error_message: Сообщение об ошибке при выполнении операции.
+    """
     try:
-        exists = await conn.scalar(
-            text(CHECK_DB_COMMAND), {"dbname": POSTGRES_DB}
-        )
-
+        exists = await conn.scalar(text(check_command), params)
         if not exists:
-            await conn.execute(
-                text(CREATE_DB_COMMAND.format(dbname=POSTGRES_DB, username=POSTGRES_USER))
-            )
-            logger.info(f"База данных {POSTGRES_DB} успешно создана.")
+            await conn.execute(text(create_command), params)
+            logger.info(success_message)
         else:
-            logger.info(f"База данных {POSTGRES_DB} уже существует.")
+            logger.info(exists_message)
     except Exception as e:
-        logger.error(f"Ошибка при создании базы данных: {e}")
+        logger.error(f"{error_message}: {e}")
 
 async def create_table(engine):
     """Создание таблиц в базе данных."""
