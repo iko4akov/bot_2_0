@@ -1,0 +1,23 @@
+{
+    "handlers": {
+        "console": {
+            "class": "aiologger.handlers.streams.AsyncStreamHandler",
+            "level": "INFO",
+            "formatter": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        },
+        "file": {
+            "class": "aiologger.handlers.files.AsyncFileHandler",
+            "level": "DEBUG",
+            "filename": "logs/app.log",
+            "mode": "a",
+            "encoding": "utf-8",
+            "formatter": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        }
+    },
+    "loggers": {
+        "app_logger": {
+            "level": "DEBUG",
+            "handlers": ["console", "file"]
+        }
+    }
+}
