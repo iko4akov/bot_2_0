@@ -18,16 +18,8 @@ bot_url_db = f"postgresql+asyncpg://" \
 
 
 #Commands create DB
-CREATE_USER_COMMAND = """
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '{username}') THEN
-        EXECUTE format('CREATE USER %I WITH PASSWORD %L', '{username}', '{password}');
-    END IF;
-END
-$$;
-"""
+CHECK_USER_COMMAND = "SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = :username"
+CREATE_USER_COMMAND = "CREATE USER {username} WITH PASSWORD '{password}';"
 
 CHECK_DB_COMMAND = "SELECT 1 FROM pg_database WHERE datname = :dbname"
 CREATE_DB_COMMAND = "CREATE DATABASE {dbname} OWNER {username};"
-

@@ -4,7 +4,7 @@ from sqlalchemy.exc import ProgrammingError
 from database.models import Base
 from utils import logger
 from database.config import CREATE_DB_COMMAND, POSTGRES_USER, CREATE_USER_COMMAND, POSTGRES_DB, POSTGRES_PASS, \
-    CHECK_DB_COMMAND
+    CHECK_DB_COMMAND, CHECK_USER_COMMAND
 
 
 async def initialize_database(admin_engine, engine):
@@ -24,11 +24,13 @@ async def initialize_database(admin_engine, engine):
 async def create_user_db(conn):
     """Создает нового пользователя."""
     try:
-        result = await conn.execute(
-            text(CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS))
+        exists = await conn.scalar(
+            text(CHECK_USER_COMMAND), {"username": POSTGRES_USER}
         )
-        if "CREATE ROLE" in str(result):
-
+        if not exists:
+            await conn.execute(
+                text(CREATE_USER_COMMAND.format(username=POSTGRES_USER, password=POSTGRES_PASS))
+            )
             logger.info(f"Создан новый пользователь: {POSTGRES_USER}")
         else:
             logger.info(f"Пользователь {POSTGRES_USER} уже существует.")
