@@ -7,9 +7,6 @@ from telethon.errors import ChannelPrivateError
 from utils import logger
 
 
-async def monitoring_channels(channels: list):
-    pass
-
 async def fetch_messages(client: Optional[TelegramClient], channel_name: str, limit=10):
     """
     Получает последние сообщения из канала.
@@ -29,3 +26,4 @@ async def fetch_messages(client: Optional[TelegramClient], channel_name: str, li
         logger.info(f"{e}")
     except Exception as e:
         logging.error(f"{e}")
+

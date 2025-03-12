@@ -10,6 +10,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-    # asyncio.run(start_parser())
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(start_parser())

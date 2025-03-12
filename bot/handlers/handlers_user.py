@@ -61,7 +61,6 @@ async def add_api_id(message: types.Message) -> None:
         await update_user(user)
     await message.reply(f" {message.text} добавлен в ваш список", reply_markup=kb.inline_markup)
 
-
 @parser_router.callback_query(lambda c: c.data == 'parsing')
 async def run_parser(callback_query: types.CallbackQuery):
     """
@@ -69,7 +68,8 @@ async def run_parser(callback_query: types.CallbackQuery):
     """
     await callback_query.answer("Запускаем сбор и репост постов...")
     user: Users = await get_user(callback_query.from_user.id)
-    await start_parser(user.api_id, user.api_hash, user.id)
+    channels = [channel.name for channel in user.channel]
+    await start_parser(user.api_id, user.api_hash, user.id, channels)
 
 @parser_router.callback_query(lambda c: c.data == "stop")
 async def stop_parser(callback_query: types.CallbackQuery):
