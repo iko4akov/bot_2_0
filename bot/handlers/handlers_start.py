@@ -16,12 +16,10 @@ async def command_start_handler(message: Message) -> None:
     """
     Просто выкидывает меню команда: /start
     """
-    await create_table()
     new_user = Users.from_message(message)
 
     await create_user(new_user)
     await message.answer(INFO_MESSAGE, reply_markup=kb.inline_markup)
-    await message.answer(INFO_MESSAGE, reply_markup=kb.button_markup)
 
 @router.message(lambda m: m.text == 'Меню')
 async def menu(message: Message):

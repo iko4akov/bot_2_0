@@ -3,15 +3,14 @@ import logging
 from typing import Optional
 from telethon import TelegramClient
 
-from parser.config import api_id, api_hash
 from utils import logger
 
 
 class TelegramClientManager:
-    def __init__(self) -> None:
-        self.client = TelegramClient("session", api_id, api_hash)
+    def __init__(self, API_ID: int, API_HASH: str, user_id) -> None:
+        self.client = TelegramClient(f"session{user_id}", API_ID, API_HASH)
 
-    async def start(self):
+    async def start(self) -> None:
         if not self.client.is_connected():
             try:
                 logger.info("Запускаем клиент....")

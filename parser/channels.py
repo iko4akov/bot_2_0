@@ -1,19 +1,24 @@
 import logging
+from typing import Optional
 
+from telethon import TelegramClient
 from telethon.errors import ChannelPrivateError
 
 from utils import logger
 
 
-async def fetch_messages(client, channel_username, limit=10):
+async def monitoring_channels(channels: list):
+    pass
+
+async def fetch_messages(client: Optional[TelegramClient], channel_name: str, limit=10):
     """
     Получает последние сообщения из канала.
     :param client: Экземпляр TelegramClient.
-    :param channel_username: Username канала.
+    :param channel_name: Имя канала.
     :param limit: Количество сообщений для получения.
     """
     try:
-        channel = await client.get_entity(channel_username)
+        channel = await client.get_entity(channel_name)
         logger.info(f"Получение сообщений из канала: {channel.title}")
 
         messages = await client.get_messages(channel, limit=limit)

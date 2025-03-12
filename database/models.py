@@ -12,7 +12,7 @@ class Users(Base):
     id = Column(Integer, index=True, unique=True, primary_key=True)
     username = Column(String(255))
     api_hash = Column(String(255))
-    api_id = Column(String(255))
+    api_id = Column(Integer)
 
     channel = relationship("Channel", back_populates="owner")
 
@@ -29,7 +29,10 @@ class Users(Base):
     def info(self) -> str:
         return f"Ваш айди: {self.id}\n" \
                f"Ваш ник: {self.username}\n" \
-               f"Список ваших каналов: {self.from_channels()}" \
+               f"Список ваших каналов: {self.from_channels()}\n" \
+               f"API_ID: {self.api_id}\n" \
+               f"API_HASH: {self.api_hash}" \
+
 
     def from_channels(self) -> list:
         return [channel.name for channel in self.channel]
@@ -37,7 +40,7 @@ class Users(Base):
     @classmethod
     def from_message(cls, message: Message):
         return cls(
-            tg_id=message.from_user.id,
+            id=message.from_user.id,
             username=message.from_user.username,
         )
 
