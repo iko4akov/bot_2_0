@@ -73,6 +73,7 @@ async def update_user(updated_user: Users) -> bool:
 
             user.api_id = updated_user.api_id
             user.api_hash = updated_user.api_hash
+            user.phone = updated_user.phone
 
             await session.commit()
             return True

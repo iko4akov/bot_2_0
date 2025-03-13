@@ -13,6 +13,7 @@ class Users(Base):
     username = Column(String(255))
     api_hash = Column(String(255))
     api_id = Column(Integer)
+    phone = Column(String(30))
 
     channel = relationship("Channel", back_populates="owner")
 
@@ -23,7 +24,7 @@ class Users(Base):
         return {
             'tg_id': self.id,
             'username': self.username,
-            'channels': self.channel
+            'channels': self.channel,
         }
 
     def info(self) -> str:
@@ -31,8 +32,8 @@ class Users(Base):
                f"Ваш ник: {self.username}\n" \
                f"Список ваших каналов: {self.from_channels()}\n" \
                f"API_ID: {self.api_id}\n" \
-               f"API_HASH: {self.api_hash}" \
-
+               f"API_HASH: {self.api_hash}\n" \
+               f"Phone: {self.phone}" \
 
     def from_channels(self) -> list:
         return [channel.name for channel in self.channel]
