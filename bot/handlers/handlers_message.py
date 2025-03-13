@@ -5,6 +5,7 @@ from aiogram import Router, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from telethon import TelegramClient
+from telethon.errors import PhoneCodeInvalidError, PhoneCodeExpiredError, AuthKeyError, PhoneNumberInvalidError
 
 from bot.keyboard import kb
 from bot.services.authorized import AuthState
@@ -73,36 +74,39 @@ async def process_api_hash(message: types.Message, state: FSMContext) -> None:
 async def process_phone(message: types.Message, state: FSMContext):
     """Добавляет(изменяет) номер телефона"""
     phone = message.text
+
     if not validate_phone_number(phone):
-        await message.answer("Не правильный номер")
+        await message.answer("Неправильный номер. Используйте международный формат (например, +79991234567).")
+        return
+
     user: Users = await get_user(message.from_user.id)
     user.phone = phone
     await update_user(user)
     await state.update_data(phone=phone)
 
-    redis_cli.save_user_data(str(user.id), user.to_dict())
-
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-
-    client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash, loop=loop)
+    client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash)
 
     try:
         await client.connect()
+
         if not await client.is_user_authorized():
-            sent_code = await client.send_code_request(user.phone)
+            sent_code = await client.send_code_request(phone)
             phone_code_hash = sent_code.phone_code_hash
-            await message.answer("Введите код подтверждения")
             await state.update_data(phone_code_hash=phone_code_hash)
+
             data_user = user.to_dict()
             data_user["phone_code_hash"] = phone_code_hash
-            redis_cli.delete_user_data(str(user.id))
             redis_cli.save_user_data(str(user.id), data_user)
+
+            await message.answer("Код отправлен. Введите его (срок действия: 1 минута):")
             await state.set_state(AuthState.waiting_for_code)
 
     except Exception as e:
-        logger.error(f"Ошибка при отправке кода {e}")
-        await message.answer(f"Ошибка при отправке кода {e}")
+        logger.error(f"Ошибка при отправке кода: {e}")
+        await message.answer("Произошла ошибка при отправке кода. Попробуйте снова.")
+    finally:
+        await client.disconnect()
+
 
 @message_router.message(StateFilter(AuthState.waiting_for_code))
 async def process_code(message: types.Message, state: FSMContext):
@@ -110,8 +114,9 @@ async def process_code(message: types.Message, state: FSMContext):
     code = message.text
     user_id = str(message.from_user.id)
     data = redis_cli.get_user_data(user_id)
-    if not data:
-        await message.answer("Ошибка: Данные пользователя не найдены.")
+
+    if not data or "phone_code_hash" not in data:
+        await message.answer("Ошибка: Данные пользователя не найдены. Попробуйте снова.")
         await state.clear()
         return
 
@@ -124,20 +129,25 @@ async def process_code(message: types.Message, state: FSMContext):
 
     try:
         await client.connect()
-        await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
-        await message.answer("Авторизация прошла успешно!")
-        logger.info("Авторизация прошла успешно!")
-        await state.clear()
 
-        redis_cli.save_session(user_id, {"session": "active"})
+        try:
+            await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
+            await message.answer("Авторизация прошла успешно!")
+            logger.info(f"Авторизация успешна для пользователя {user_id}")
+            await state.clear()
 
-        await fetch_messages(client, "infa100go")
+            redis_cli.save_session(user_id, {"session": "active"})
 
-        # Thread(target=start_monitoring, args=(client, user_id)).start()
+        except PhoneCodeExpiredError:
+            await message.answer("Срок действия кода истек. Запрашиваю новый код...")
+            sent_code = await client.send_code_request(phone)
+            phone_code_hash = sent_code.phone_code_hash
+            await state.update_data(phone_code_hash=phone_code_hash)
+            await message.answer("Новый код отправлен. Введите его:")
+            return
 
     except Exception as e:
         logger.error(f"Ошибка при авторизации: {e}")
-
-
-
-
+        await message.answer("Произошла ошибка при авторизации. Попробуйте снова.")
+    finally:
+        await client.disconnect()

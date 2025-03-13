@@ -19,5 +19,5 @@ async def check_data(user: Users):
 
     return {"succes": True}
 
-def validate_phone_number(phone_number: str) -> bool:
-    return phone_number[1:].isdigit()
+def validate_phone_number(phone: str) -> bool:
+    return phone.startswith("+") and phone[1:].isdigit()
