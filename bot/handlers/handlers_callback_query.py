@@ -29,9 +29,18 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
     """
     Команда запуска парсинга постов
     """
-    await callback_query.answer("Запускаем сбор и репост постов...")
-    await bot.send_message(callback_query.from_user.id, "Введите API_ID")
-    await state.set_state(AuthState.waiting_for_api_id)
+    user: Users = await get_user(callback_query.from_user.id)
+    if not user.api_id:
+        await callback_query.answer("Запускаем сбор и репост постов...")
+        await bot.send_message(callback_query.from_user.id, "Введите API_ID")
+        await state.set_state(AuthState.waiting_for_api_id)
+    elif not user.api_hash:
+        await bot.send_message(callback_query.from_user.id, "Введите API_HASH")
+        await state.set_state(AuthState.waiting_for_api_hash)
+    else:
+        await bot.send_message(callback_query.from_user.id, "Введите телефон")
+        await state.set_state(AuthState.waiting_for_phone)
+
 
 
 @parser_router.callback_query(lambda c: c.data == "stop")

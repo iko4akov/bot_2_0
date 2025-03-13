@@ -13,6 +13,7 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
+from parser.channels import fetch_messages
 from utils import logger
 
 message_router = Router()
@@ -49,8 +50,12 @@ async def process_api_id(message: types.Message, state: FSMContext) -> None:
     user.api_id = api_id
     await update_user(user)
     await state.update_data(api_id=api_id)
-    await message.answer("Введите API_HASh")
-    await state.set_state(AuthState.waiting_for_api_hash)
+    if not user.api_hash:
+        await message.answer("Введите API_HASh")
+        await state.set_state(AuthState.waiting_for_api_hash)
+    else:
+        await message.answer("Введите телефон ")
+        await state.set_state(AuthState.waiting_for_phone)
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_hash))
 async def process_api_hash(message: types.Message, state: FSMContext) -> None:
@@ -84,9 +89,16 @@ async def process_phone(message: types.Message, state: FSMContext):
 
     try:
         await client.connect()
-        await client.send_code_request(user.phone)
-        await message.answer("Введите код подтверждения")
-        await state.set_state(AuthState.waiting_for_code)
+        if not await client.is_user_authorized():
+            sent_code = await client.send_code_request(user.phone)
+            phone_code_hash = sent_code.phone_code_hash
+            await message.answer("Введите код подтверждения")
+            await state.update_data(phone_code_hash=phone_code_hash)
+            data_user = user.to_dict()
+            data_user["phone_code_hash"] = phone_code_hash
+            redis_cli.delete_user_data(str(user.id))
+            redis_cli.save_user_data(str(user.id), data_user)
+            await state.set_state(AuthState.waiting_for_code)
 
     except Exception as e:
         logger.error(f"Ошибка при отправке кода {e}")
@@ -100,21 +112,26 @@ async def process_code(message: types.Message, state: FSMContext):
     data = redis_cli.get_user_data(user_id)
     if not data:
         await message.answer("Ошибка: Данные пользователя не найдены.")
-        await state.finish()
+        await state.clear()
         return
 
     api_id = data["api_id"]
     api_hash = data["api_hash"]
     phone = data["phone"]
+    phone_code_hash = data["phone_code_hash"]
 
     client = TelegramClient(f"session_{user_id}", api_id, api_hash)
 
     try:
-        await client.sign_in(phone, code)
+        await client.connect()
+        await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
         await message.answer("Авторизация прошла успешно!")
-        await state.finish()
+        logger.info("Авторизация прошла успешно!")
+        await state.clear()
 
         redis_cli.save_session(user_id, {"session": "active"})
+
+        await fetch_messages(client, "infa100go")
 
         # Thread(target=start_monitoring, args=(client, user_id)).start()
 
