@@ -20,11 +20,12 @@ class Users(Base):
     def __repr__(self) -> str:
         return f"Users(tg_id={self.id}, username={self.username})"
 
-    def to_dict(self) -> dict[str, Column[str] | Column[int]]:
+    def to_dict(self) -> dict[str, Column[str] | Column[int], list]:
         return {
-            'tg_id': self.id,
-            'username': self.username,
-            'channels': self.channel,
+            "api_id": self.api_id,
+            "api_hash": self.api_hash,
+            "phone": self.phone,
+            'channels': self.from_channels(),
         }
 
     def info(self) -> str:

@@ -11,11 +11,11 @@ async def check_data(user: Users):
     if not user.phone:
         errors['phone'] = "Отсутствует phone"
     if not len(user.channel) == 0:
-        errors['Channel'] = "Список кналов пуст"
+        errors['Channel'] = "Список каналов пуст"
 
     if errors:
         logger.warning(f"Ошибки при проверки данных {errors}")
-        return {"succes": False, "errors": errors}
+        return {"success": False, "errors": errors}
 
     return {"succes": True}
 

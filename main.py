@@ -5,6 +5,7 @@ from database.run import init_db
 
 
 async def main():
+
     await init_db()
     await start_bot()
 

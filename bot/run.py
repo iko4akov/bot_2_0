@@ -11,12 +11,10 @@ from utils import logger
 
 async def start_bot() -> None:
     logger.info("Bot running....")
-    routers = [router, parser_router, message_router, admin_router]
-    # dp.include_router(router)
-    # dp.include_router(parser_router)
-    # dp.include_router(message_router)
-    # dp.include_router(admin_router)
-    dp.include_routers(routers)
+    dp.include_router(router)
+    dp.include_router(parser_router)
+    dp.include_router(message_router)
+    dp.include_router(admin_router)
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
