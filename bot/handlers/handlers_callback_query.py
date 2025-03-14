@@ -1,3 +1,5 @@
+from threading import Thread
+
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from telethon import TelegramClient
@@ -7,6 +9,7 @@ from bot.keyboard import kb
 from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
+from parser.parser import start_monitoring
 
 parser_router = Router()
 
@@ -62,6 +65,8 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
             await state.set_state(AuthState.waiting_for_code)
     else:
         await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
+        user: Users = await get_user(callback_query.from_user.id)
+        Thread(target=start_monitoring, args=(client, user)).start()
 
 
 @parser_router.callback_query(lambda c: c.data == "stop")

@@ -14,7 +14,7 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
-from parser.channels import fetch_messages
+from parser.parser import fetch_messages, start_monitoring
 from utils import logger
 
 message_router = Router()
@@ -119,11 +119,6 @@ async def process_code(message: types.Message, state: FSMContext):
     user_id = str(message.from_user.id)
     data = redis_cli.get_user_data(user_id)
 
-    if not data or "phone_code_hash" not in data:
-        await message.answer("Ошибка: Данные пользователя не найдены. Попробуйте снова.")
-        await state.clear()
-        return
-
     api_id = data["api_id"]
     api_hash = data["api_hash"]
     phone = data["phone"]
@@ -141,6 +136,9 @@ async def process_code(message: types.Message, state: FSMContext):
             await state.clear()
 
             redis_cli.save_session(user_id, {"session": "active"})
+
+            user: Users = await get_user(message.from_user.id)
+            Thread(target=start_monitoring, args=(client, user)).start()
 
         except PhoneCodeExpiredError:
             await message.answer("Срок действия кода истек. Запрашиваю новый код...")
