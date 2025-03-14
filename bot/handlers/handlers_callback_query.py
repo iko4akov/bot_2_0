@@ -1,3 +1,4 @@
+import asyncio
 from threading import Thread
 
 from aiogram import Router, types
@@ -66,7 +67,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
     else:
         await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
         user: Users = await get_user(callback_query.from_user.id)
-        Thread(target=start_monitoring, args=(client, user)).start()
+        asyncio.create_task(start_monitoring(client, user))
 
 
 @parser_router.callback_query(lambda c: c.data == "stop")

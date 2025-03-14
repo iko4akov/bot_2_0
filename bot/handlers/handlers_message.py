@@ -14,11 +14,22 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
-from parser.parser import fetch_messages, start_monitoring
+from parser.parser import start_monitoring
 from utils import logger
 
 message_router = Router()
 
+
+@message_router.message(lambda m: m.text.startswith("+"))
+async def create_channel(message: types.Message) -> None:
+    """
+    Изменить целевой канал
+    """
+    target_channel = message.text[1:]
+    user: Users = await get_user(message.from_user.id)
+    user.target_channel = target_channel
+    await update_user(user)
+    await message.reply(f"В канал {message.text} посты будут перенаправляться", reply_markup=kb.inline_markup)
 
 @message_router.message(lambda m: m.text.startswith("@"))
 async def create_channel(message: types.Message) -> None:
@@ -26,7 +37,7 @@ async def create_channel(message: types.Message) -> None:
     Добавляет канал в список для парсинга
     """
     channel = Channel()
-    name = message.text[1:]
+    name = message.text
     channel.name = name
     channel.user_id = message.from_user.id
     await add_channel(channel)
@@ -37,9 +48,9 @@ async def drop_channel(message: types.Message) -> None:
     """
     Удалить канал из списка для парсинга
     """
-    name_chnanel = message.text[1:]
-    await delete_channel(name_chnanel, message.from_user.id)
-    await message.reply(f"Канал '{name_chnanel}' удален из списка для парсинга ", reply_markup=kb.inline_markup)
+    name_channel = message.text[1:]
+    await delete_channel(name_channel, message.from_user.id)
+    await message.reply(f"Канал '{name_channel}' удален из списка для парсинга ", reply_markup=kb.inline_markup)
 
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_id))
@@ -138,7 +149,9 @@ async def process_code(message: types.Message, state: FSMContext):
             redis_cli.save_session(user_id, {"session": "active"})
 
             user: Users = await get_user(message.from_user.id)
-            Thread(target=start_monitoring, args=(client, user)).start()
+
+            asyncio.create_task(start_monitoring(client, user))
+
 
         except PhoneCodeExpiredError:
             await message.answer("Срок действия кода истек. Запрашиваю новый код...")
