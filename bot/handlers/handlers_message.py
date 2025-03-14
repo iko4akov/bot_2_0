@@ -98,7 +98,11 @@ async def process_phone(message: types.Message, state: FSMContext):
             data_user["phone_code_hash"] = phone_code_hash
             redis_cli.save_user_data(str(user.id), data_user)
 
-            await message.answer("Код отправлен. Введите его (срок действия: 1 минута):")
+            await message.answer("Код отправлен. Введите его в формате: x1xx2x3x4x5\n"
+                                 "где 'x' это любой не числовой символ\n"
+                                 "Пример ваш код 11111\n"
+                                 "Ваше сообщение фыв1выу1выфы1ввфыв1вфы1")
+
             await state.set_state(AuthState.waiting_for_code)
 
     except Exception as e:
@@ -111,7 +115,7 @@ async def process_phone(message: types.Message, state: FSMContext):
 @message_router.message(StateFilter(AuthState.waiting_for_code))
 async def process_code(message: types.Message, state: FSMContext):
     """Авторизация по коду"""
-    code = message.text
+    code = "".join([char for char in message.text if char.isdigit()])
     user_id = str(message.from_user.id)
     data = redis_cli.get_user_data(user_id)
 
