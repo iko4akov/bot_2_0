@@ -13,6 +13,7 @@ aiologger = "^0.7.0"
 aiogram = "^3.18.0"
 sqlalchemy = "^2.0.38"
 asyncpg = "^0.30.0"
+redis = "^5.2.1"
 
 
 [build-system]

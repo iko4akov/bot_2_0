@@ -1,34 +1,23 @@
-import asyncio
-import logging
+from database.models import Users
+from utils import logger
 
-from aiogram.exceptions import TelegramRetryAfter
 
-from bot import bot
-from database.models.models import Media
+async def check_data(user: Users):
+    errors = {}
+    if not user.api_id:
+        errors['api_id'] = "Отсутствует API_ID"
+    if not user.api_hash:
+        errors['api_hash'] = "Отсутствует API_HASH"
+    if not user.phone:
+        errors['phone'] = "Отсутствует phone"
+    if not len(user.channel) == 0:
+        errors['Channel'] = "Список каналов пуст"
 
-def parse_post_id(callback_data: str) -> int:
-    """
-    Парсит ID поста из callback_data.
-    """
-    try:
-        return int(callback_data[1:])
-    except ValueError:
-        raise ValueError("Неверный формат ID поста.")
+    if errors:
+        logger.warning(f"Ошибки при проверки данных {errors}")
+        return {"success": False, "errors": errors}
 
-async def send_media_files(target: [int, str], media_list: list):
-    """
-    Отправляет медиафайлы.
-    """
-    try:
-        for media in media_list:
-            if isinstance(media, Media):
-                if media.type == "image":
-                    await bot.send_photo(chat_id=target, photo=media.url)
-                elif media.type == "video":
-                    await bot.send_animation(chat_id=target, animation=media.url)
-                await asyncio.sleep(3)
-            else:
-                await bot.send_message(media.post.user_id, "Медиа имеет неверный формат.")
-    except TelegramRetryAfter as e:
-            logging.warning(f"Сработал Flood control. Ждем {e.retry_after} секунд.")
-            await asyncio.sleep(e.retry_after)
+    return {"succes": True}
+
+def validate_phone_number(phone: str) -> bool:
+    return phone.startswith("+") and phone[1:].isdigit()

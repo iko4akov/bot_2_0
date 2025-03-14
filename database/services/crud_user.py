@@ -66,12 +66,14 @@ async def update_user(updated_user: Users) -> bool:
     async for session in get_session():
         try:
             result = await session.execute(select(Users).where(Users.id == updated_user.id))
-            user = result.scalars().first()
+            user :Users = result.scalars().first()
             if not user:
                 logger.warning(f"Пользователь с tg_id={updated_user.id} не найден.")
                 return False
 
-            user.username = updated_user.username
+            user.api_id = updated_user.api_id
+            user.api_hash = updated_user.api_hash
+            user.phone = updated_user.phone
 
             await session.commit()
             return True

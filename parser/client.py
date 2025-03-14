@@ -1,28 +1,11 @@
-import logging
+import asyncio
 
 from typing import Optional
 from telethon import TelegramClient
 
-from parser.config import api_id, api_hash
-from utils import logger
 
-
-class TelegramClientManager:
-    def __init__(self) -> None:
-        self.client = TelegramClient("session", api_id, api_hash)
-
-    async def start(self):
-        if not self.client.is_connected():
-            try:
-                logger.info("Запускаем клиент....")
-                await self.client.start()
-            except Exception as e:
-                logger.error(f"Произошла ошибка: {e}")
-
-    async def stop(self) -> None:
-        if self.client.is_connected():
-            await self.client.disconnect()
-            logging.info("Клиент остановлен")
-
-    async def get_client(self) -> Optional[TelegramClient]:
-        return self.client
+async def get_client(api_id, api_hash, user_id) -> Optional[TelegramClient]:
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = TelegramClient(f"session_{user_id}", api_id, api_hash, loop=loop)
+    return client
