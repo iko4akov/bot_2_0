@@ -20,7 +20,7 @@ from utils import logger
 message_router = Router()
 
 
-@message_router.message(lambda m: m.text.startswith("+"))
+@message_router.message(lambda m: m.text.startswith(">"))
 async def create_channel(message: types.Message) -> None:
     """
     Изменить целевой канал
