@@ -1,3 +1,6 @@
+import asyncio
+from threading import Thread
+
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
 from telethon import TelegramClient
@@ -7,9 +10,12 @@ from bot.keyboard import kb
 from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
+from parser.parser import start_monitoring
 
 parser_router = Router()
 
+
+clients = {}
 
 @parser_router.callback_query(lambda c: c.data == 'user')
 async def callback_user(callback_query: types.CallbackQuery):
@@ -33,6 +39,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
     await callback_query.answer()
     user: Users = await get_user(callback_query.from_user.id)
     client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash)
+    clients[f"{user.id}"] = client
     await client.connect()
     if not await client.is_user_authorized():
         if not user.api_id:
@@ -62,12 +69,17 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
             await state.set_state(AuthState.waiting_for_code)
     else:
         await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
+        user: Users = await get_user(callback_query.from_user.id)
+        asyncio.create_task(start_monitoring(client, user))
 
 
 @parser_router.callback_query(lambda c: c.data == "stop")
 async def stop_parser(callback_query: types.CallbackQuery):
-
-    await callback_query.answer("Парсер остановлен")
+    client = clients.get(f"{callback_query.from_user.id}")
+    if client:
+        await client.disconnect()
+        del clients[f"{callback_query.from_user.id}"]
+        await bot.send_message(callback_query.from_user.id, "Парсер остановлен")
 
 @parser_router.message(lambda m: m.text.lower().startswith("api+"))
 async def add_api_id(message: types.Message) -> None:

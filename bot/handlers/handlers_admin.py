@@ -7,6 +7,7 @@ from bot.decorators.admin_required import admin_required
 admin_router = Router()
 
 @admin_router.message(lambda m: m.text.startswith("!"))
+@admin_required
 async def show_user(message: Message) -> None:
     """Показать информацию о user по айди <!id_user>"""
     id_user = int(message.text[1:])
