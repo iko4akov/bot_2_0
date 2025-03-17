@@ -1,6 +1,5 @@
-import telethon.tl.types.messages
-
 from settings.config import stop_words
+
 
 def check_stop_words(message: str):
     for word in stop_words:
