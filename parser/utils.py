@@ -7,6 +7,7 @@ async def remove_links(text: str) -> str:
     text = re.sub(r"\[.*?\]\(https?://t\.me/\S+\)", "", text)
     text = re.sub(r"@\w+", "", text)
     text = re.sub(r"http\S+", "", text)
+    text = re.sub(r"#\S+", "", text)
     text = " ".join(text.split())
     for word in stop_words:
         text = re.sub(re.escape(word), "", text, flags=re.IGNORECASE)
