@@ -14,10 +14,8 @@ async def start_parser(api_id, api_hash, user_id, channels):
     client = TelegramClient(f"session{user_id}", api_id, api_hash, loop=loop)
 
     try:
-        # Подключаемся к Telegram
         await client.connect()
 
-        # Проверяем авторизацию
         if not await client.is_user_authorized():
             logger.warning("Пользователь не авторизован!")
             phone_number = phone_provider(user_id)
@@ -28,7 +26,6 @@ async def start_parser(api_id, api_hash, user_id, channels):
 
         logger.info("Успешно подключились к Telegram!")
 
-        # Обработчик новых сообщений
         @client.on(events.NewMessage(chats=channels))
         async def new_message_handler(event):
             message = event.message

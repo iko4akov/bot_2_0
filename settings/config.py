@@ -11,11 +11,6 @@ BOT_TOKEN=os.getenv('BOT_TOKEN')
 API_ID = os.getenv("APP_API_ID")
 API_HASH = os.getenv("APP_API_HASH")
 
-CHANNELS = [
-    "@kosmo_off",
-    "@okkosport"
-]
-
 
 # Database
 POSTGRES_ADMIN_USER = os.getenv('POSTGRES_ADMIN_USER')
@@ -26,7 +21,7 @@ POSTGRES_DB = os.getenv('POSTGRES_DB')
 POSTGRES_HOST: str | None = os.getenv('POSTGRES_HOST')
 POSTGRES_PORT = os.getenv('POSTGRES_PORT')
 
-
+stop_words = ["подписаться", "@", "https", "подпишись", "подписывайся", "подписка"]
 
 # Check admin
 ADMINS = [os.getenv('ADMIN_TG1')]

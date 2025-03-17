@@ -20,24 +20,24 @@ from utils import logger
 message_router = Router()
 
 
-@message_router.message(lambda m: m.text.startswith(">"))
+@message_router.message(lambda m: m.text.startswith("@"))
 async def create_channel(message: types.Message) -> None:
     """
     Изменить целевой канал
     """
-    target_channel = message.text[1:]
+    target_channel = message.text
     user: Users = await get_user(message.from_user.id)
     user.target_channel = target_channel
     await update_user(user)
     await message.reply(f"В канал {message.text} посты будут перенаправляться", reply_markup=kb.inline_markup)
 
-@message_router.message(lambda m: m.text.startswith("@"))
+@message_router.message(lambda m: m.text.startswith("https://t.me/"))
 async def create_channel(message: types.Message) -> None:
     """
     Добавляет канал в список для парсинга
     """
     channel = Channel()
-    name = message.text
+    name = "@" + message.text[13:]
     channel.name = name
     channel.user_id = message.from_user.id
     await add_channel(channel)
