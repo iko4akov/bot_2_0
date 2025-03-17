@@ -7,7 +7,6 @@ admin_url_db = f"postgresql+asyncpg://" \
                f"{POSTGRES_HOST}:" \
                f"{POSTGRES_PORT}/" \
                f"{POSTGRES_ADMIN_DB}"
-# admin_url_db = f"postgresql+asyncpg:///{POSTGRES_ADMIN_DB}"
 
 bot_url_db = f"postgresql+asyncpg://" \
                f"{POSTGRES_USER}:" \

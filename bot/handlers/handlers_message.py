@@ -1,11 +1,10 @@
 import asyncio
-from threading import Thread
 
 from aiogram import Router, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from telethon import TelegramClient
-from telethon.errors import PhoneCodeInvalidError, PhoneCodeExpiredError, AuthKeyError, PhoneNumberInvalidError
+from telethon.errors import PhoneCodeExpiredError
 
 from bot.keyboard import kb
 from bot.services.authorized import AuthState
@@ -14,6 +13,7 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
+from parser.config import info_api_hash, info_phone, info_api_id, info_code
 from parser.parser import start_monitoring
 from utils import logger
 
@@ -63,10 +63,10 @@ async def process_api_id(message: types.Message, state: FSMContext) -> None:
     await update_user(user)
     await state.update_data(api_id=api_id)
     if not user.api_hash:
-        await message.answer("Введите API_HASh")
+        await message.answer(info_api_hash)
         await state.set_state(AuthState.waiting_for_api_hash)
     else:
-        await message.answer("Введите телефон ")
+        await message.answer(info_phone)
         await state.set_state(AuthState.waiting_for_phone)
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_hash))
@@ -78,7 +78,7 @@ async def process_api_hash(message: types.Message, state: FSMContext) -> None:
     user.api_hash = api_hash
     await update_user(user)
     await state.update_data(api_hash=api_hash)
-    await message.answer("Введите телефон в формате +71234567890")
+    await message.answer(info_phone)
     await state.set_state(AuthState.waiting_for_phone)
 
 @message_router.message(StateFilter(AuthState.waiting_for_phone))
@@ -109,10 +109,7 @@ async def process_phone(message: types.Message, state: FSMContext):
             data_user["phone_code_hash"] = phone_code_hash
             redis_cli.save_user_data(str(user.id), data_user)
 
-            await message.answer("Код отправлен. Введите его в формате: x1xx2x3x4x5\n"
-                                 "где 'x' это любой не числовой символ\n"
-                                 "Пример ваш код 11111\n"
-                                 "Ваше сообщение фыв1выу1выфы1ввфыв1вфы1")
+            await message.answer(info_code)
 
             await state.set_state(AuthState.waiting_for_code)
 
@@ -158,7 +155,7 @@ async def process_code(message: types.Message, state: FSMContext):
             sent_code = await client.send_code_request(phone)
             phone_code_hash = sent_code.phone_code_hash
             await state.update_data(phone_code_hash=phone_code_hash)
-            await message.answer("Новый код отправлен. Введите его:")
+            await message.answer(info_code)
             return
 
     except Exception as e:

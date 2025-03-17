@@ -11,9 +11,10 @@ from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
 from parser.parser import start_monitoring
+from parser.config import info_code, info_phone, info_api_id, info_api_hash
+
 
 parser_router = Router()
-
 
 clients = {}
 
@@ -44,13 +45,13 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
     if not await client.is_user_authorized():
         if not user.api_id:
             await callback_query.answer("Запускаем сбор и репост постов...")
-            await bot.send_message(callback_query.from_user.id, "Введите API_ID")
+            await bot.send_message(callback_query.from_user.id, info_api_id)
             await state.set_state(AuthState.waiting_for_api_id)
         elif not user.api_hash:
-            await bot.send_message(callback_query.from_user.id, "Введите API_HASH")
+            await bot.send_message(callback_query.from_user.id, info_api_hash)
             await state.set_state(AuthState.waiting_for_api_hash)
         elif not user.phone:
-            await bot.send_message(callback_query.from_user.id, "Введите телефон")
+            await bot.send_message(callback_query.from_user.id, info_phone)
             await state.set_state(AuthState.waiting_for_phone)
         else:
             sent_code = await client.send_code_request(user.phone)
@@ -61,10 +62,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
             data_user["phone_code_hash"] = phone_code_hash
             redis_cli.save_user_data(str(user.id), data_user)
 
-            await callback_query.answer("Код отправлен. Введите его в формате: x1xx2x3x4x5\n"
-                                         "где 'x' это любой не числовой символ\n"
-                                         "Пример ваш код 11111\n"
-                                         "Ваше сообщение фыв1выу1выфы1ввфыв1вфы1")
+            await callback_query.answer(info_code)
 
             await state.set_state(AuthState.waiting_for_code)
     else:
@@ -75,6 +73,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
 
 @parser_router.callback_query(lambda c: c.data == "stop")
 async def stop_parser(callback_query: types.CallbackQuery):
+    await callback_query.answer()
     client = clients.get(f"{callback_query.from_user.id}")
     if client:
         await client.disconnect()
