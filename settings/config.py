@@ -21,7 +21,6 @@ POSTGRES_DB = os.getenv('POSTGRES_DB')
 POSTGRES_HOST: str | None = os.getenv('POSTGRES_HOST')
 POSTGRES_PORT = os.getenv('POSTGRES_PORT')
 
-stop_words = ["подписаться", "@", "https", "подпишись", "подписывайся", "подписка"]
 
 # Check admin
 ADMINS = [os.getenv('ADMIN_TG1')]

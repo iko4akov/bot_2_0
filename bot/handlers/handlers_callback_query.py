@@ -1,5 +1,4 @@
 import asyncio
-from threading import Thread
 
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
@@ -10,9 +9,9 @@ from bot.keyboard import kb
 from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
-from parser.parser import start_monitoring
+from parser.parser import start_monitoring, one_for_list
 from parser.config import info_code, info_phone, info_api_id, info_api_hash
-
+from utils import logger
 
 parser_router = Router()
 
@@ -33,64 +32,94 @@ async def callback_user(callback_query: types.CallbackQuery):
         await bot.answer_callback_query(callback_query.id, f'user not finded')
 
 @parser_router.callback_query(lambda c: c.data == 'parsing')
-async def run_parser(callback_query: types.CallbackQuery, state: FSMContext):
+async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> None:
     """
-    Команда запуска парсинга постов
+    Команда запуска парсинга постов.
     """
     await callback_query.answer()
     user: Users = await get_user(callback_query.from_user.id)
     client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash)
     clients[f"{user.id}"] = client
-    await client.connect()
-    if not await client.is_user_authorized():
-        if not user.api_id:
-            await callback_query.answer("Запускаем сбор и репост постов...")
-            await bot.send_message(callback_query.from_user.id, info_api_id)
-            await state.set_state(AuthState.waiting_for_api_id)
-        elif not user.api_hash:
-            await bot.send_message(callback_query.from_user.id, info_api_hash)
-            await state.set_state(AuthState.waiting_for_api_hash)
-        elif not user.phone:
-            await bot.send_message(callback_query.from_user.id, info_phone)
-            await state.set_state(AuthState.waiting_for_phone)
+
+    try:
+        await client.connect()
+        if not await client.is_user_authorized():
+            if not user.api_id:
+                await callback_query.answer("Запускаем сбор и репост постов...")
+                await bot.send_message(callback_query.from_user.id, info_api_id)
+                await state.set_state(AuthState.waiting_for_api_id)
+            elif not user.api_hash:
+                await bot.send_message(callback_query.from_user.id, info_api_hash)
+                await state.set_state(AuthState.waiting_for_api_hash)
+            elif not user.phone:
+                await bot.send_message(callback_query.from_user.id, info_phone)
+                await state.set_state(AuthState.waiting_for_phone)
+            else:
+                sent_code = await client.send_code_request(user.phone)
+                phone_code_hash = sent_code.phone_code_hash
+                await state.update_data(phone_code_hash=phone_code_hash)
+
+                data_user = user.to_dict()
+                data_user["phone_code_hash"] = phone_code_hash
+                redis_cli.save_user_data(str(user.id), data_user)
+
+                await callback_query.answer(info_code)
+
+                await state.set_state(AuthState.waiting_for_code)
+
         else:
-            sent_code = await client.send_code_request(user.phone)
-            phone_code_hash = sent_code.phone_code_hash
-            await state.update_data(phone_code_hash=phone_code_hash)
-
-            data_user = user.to_dict()
-            data_user["phone_code_hash"] = phone_code_hash
-            redis_cli.save_user_data(str(user.id), data_user)
-
-            await callback_query.answer(info_code)
-
-            await state.set_state(AuthState.waiting_for_code)
-    else:
-        await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
-        user: Users = await get_user(callback_query.from_user.id)
-        asyncio.create_task(start_monitoring(client, user))
-
+            await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
+            asyncio.create_task(start_monitoring(client, user))
+    except ConnectionError as e:
+        logger.error(f"Ошибка подключения: {e}")
+        await bot.send_message(callback_query.from_user.id, "Не удалось подключиться к Telegram.")
+    except Exception as e:
+        logger.error(f"Неизвестная ошибка: {e}")
+        await bot.send_message(callback_query.from_user.id, "Произошла ошибка при запуске парсера.")
 
 @parser_router.callback_query(lambda c: c.data == "stop")
-async def stop_parser(callback_query: types.CallbackQuery):
+async def stop_parser(callback_query: types.CallbackQuery) -> None:
+    """
+    Команда остановки парсера.
+    """
     await callback_query.answer()
-    client = clients.get(f"{callback_query.from_user.id}")
+    user_id = str(callback_query.from_user.id)
+    client = clients.get(user_id)
+
     if client:
-        await client.disconnect()
-        del clients[f"{callback_query.from_user.id}"]
-        await bot.send_message(callback_query.from_user.id, "Парсер остановлен")
+        try:
+            await client.disconnect()
+            del clients[user_id]
+            await bot.send_message(callback_query.from_user.id, "Парсер остановлен")
+        except Exception as e:
+            logger.error(f"Ошибка при остановке парсера: {e}")
+            await bot.send_message(callback_query.from_user.id, "Произошла ошибка при остановке парсера.")
+    else:
+        await bot.send_message(callback_query.from_user.id, "Парсер не был запущен.")
 
 @parser_router.message(lambda m: m.text.lower().startswith("api+"))
 async def add_api_id(message: types.Message) -> None:
     """
-    Изменяет api_id, api_hash
+    Изменяет api_id и api_hash пользователя.
     """
-    user: Users = await get_user(message.from_user.id)
-    if message.text[4:].isdigit():
-        user.api_id = int(message.text[4:])
-        await update_user(user)
+    user = await get_user(message.from_user.id)
+    api_data = message.text[4:].strip()
 
-    else:
-        user.api_hash = message.text[4:]
+    if api_data.isdigit():
+        user.api_id = int(api_data)
         await update_user(user)
-    await message.reply(f" {message.text} добавлен в ваш список", reply_markup=kb.inline_markup)
+        await message.reply(f"API_ID {api_data} успешно добавлен.", reply_markup=kb.inline_markup)
+    elif len(api_data) == 32:
+        user.api_hash = api_data
+        await update_user(user)
+        await message.reply(f"API_HASH {api_data} успешно добавлен.", reply_markup=kb.inline_markup)
+    else:
+        await message.reply("Некорректный формат API_ID или API_HASH. Пожалуйста, попробуйте снова.")
+
+@parser_router.message(lambda m: m.text.lower().startswith("один"))
+async def one_for(message: types.Message):
+    num = int(message.text[4])
+    limit = int(message.text[6])
+    user: Users = await get_user(message.from_user.id)
+    client = clients.get(message.from_user.id)
+    await one_for_list(client=client, user=user, limit=limit, num=num)
