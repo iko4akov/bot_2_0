@@ -1,14 +1,14 @@
-from parser.config import stop_words, drop_word
+import re
 
 
-async def check_stop_words(message: str):
-    for word in stop_words:
-        if word in message.lower():
-            return False
-    return True
+async def remove_links(text: str) -> str:
+    """
+    Удаляет все ссылки из текста.
+    """
+    text = re.sub(r"@\w+", "", text)
 
-async def drop_words(message: str) -> str:
-    for bad_word in drop_word:
-        message.replace(bad_word, "")
+    text = re.sub(r"http\S+", "", text)
 
-    return message
+    text = " ".join(text.split())
+
+    return text

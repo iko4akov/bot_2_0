@@ -4,7 +4,7 @@ from telethon import TelegramClient, events
 from telethon.tl.types import Message
 
 from database.models import Users
-from parser.utils import check_stop_words, drop_words
+from parser.utils import remove_links
 from utils import logger
 
 
@@ -16,16 +16,13 @@ async def start_monitoring(client: Optional[TelegramClient], user: Users):
 
 async def forward_message(message: Message, target_channel, client: Optional[TelegramClient]):
     try:
-        if await check_stop_words(message.message):
-            text = await drop_words(message.message)
-            if message.media:
-                await client.send_file(entity=target_channel, file=message.media, caption=text)
-                logger.info("Media отправлено")
-            else:
-                await client.send_message(entity=target_channel, message=text)
-                logger.info("Text отправлен")
+        text = await remove_links(message.message)
+        if message.media:
+            await client.send_file(entity=target_channel, file=message.media, caption=text)
+            logger.info("Media отправлено")
         else:
-            logger.info("Обнаружено стоп слово")
+            await client.send_message(entity=target_channel, message=text)
+            logger.info("Text отправлен")
 
     except Exception as e:
         logger.error(f"Ошибка при отправке сообщения: {e}")
