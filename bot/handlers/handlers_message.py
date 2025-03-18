@@ -13,8 +13,8 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
-from parser.config import info_api_hash, info_phone, info_api_id, info_code
-from parser.parser import start_monitoring
+from parser.config import info_api_hash, info_phone, info_code
+from parser.run import start_monitoring
 from utils import logger
 
 message_router = Router()
@@ -141,7 +141,7 @@ async def process_code(message: types.Message, state: FSMContext) -> None:
             redis_cli.save_session(user_id, {"session": "active"})
 
             user: Users = await get_user(message.from_user.id)
-            asyncio.create_task(start_monitoring(client, user))
+            asyncio.create_task(start_monitoring(client, user.list_channels(), user.target_channel))
 
         except PhoneCodeExpiredError:
             await message.answer("Срок действия кода истек. Запрашиваю новый код...")

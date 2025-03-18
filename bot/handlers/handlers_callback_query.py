@@ -9,7 +9,8 @@ from bot.keyboard import kb
 from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
-from parser.parser import start_monitoring, one_for_list
+from parser.client import get_client
+from parser.run import start_monitoring
 from parser.config import info_code, info_phone, info_api_id, info_api_hash
 from utils import logger
 
@@ -38,7 +39,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
     """
     await callback_query.answer()
     user: Users = await get_user(callback_query.from_user.id)
-    client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash)
+    client = await get_client(api_id=user.api_id, api_hash=user.api_hash, user_id=user.id)
     clients[f"{user.id}"] = client
 
     try:
@@ -69,7 +70,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
 
         else:
             await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
-            asyncio.create_task(start_monitoring(client, user))
+            asyncio.create_task(start_monitoring(client, user.list_channels(), user.target_channel))
     except ConnectionError as e:
         logger.error(f"Ошибка подключения: {e}")
         await bot.send_message(callback_query.from_user.id, "Не удалось подключиться к Telegram.")

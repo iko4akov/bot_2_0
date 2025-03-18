@@ -12,5 +12,3 @@ async def remove_links(text: str) -> str:
     for word in stop_words:
         text = re.sub(re.escape(word), "", text.lower(), flags=re.IGNORECASE)
     return text
-
-
