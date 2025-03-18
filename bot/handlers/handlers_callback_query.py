@@ -10,6 +10,7 @@ from bot.services.authorized import AuthState
 from database.models import Users
 from database.services.crud_user import get_user, update_user
 from parser.client import get_client
+from parser.monitoring import one_for_list
 from parser.run import start_monitoring
 from parser.config import info_code, info_phone, info_api_id, info_api_hash
 from utils import logger
@@ -122,5 +123,8 @@ async def one_for(message: types.Message):
     num = int(message.text[4])
     limit = int(message.text[6])
     user: Users = await get_user(message.from_user.id)
+    list_channels = user.list_channels()
+    target_channel = user.target_channel
     client = clients.get(message.from_user.id)
-    await one_for_list(client=client, user=user, limit=limit, num=num)
+
+    await one_for_list(client=client, limit=limit, num=num, list_channels=list_channels, target_channel=target_channel)
