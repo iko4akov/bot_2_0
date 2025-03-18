@@ -3,7 +3,7 @@ from typing import List
 from telethon.tl.types import Message
 from telethon import TelegramClient
 
-from parser.utils import remove_links
+from parser.utils import remove_links, reject_message
 from utils import logger
 
 
@@ -13,12 +13,15 @@ async def forward_message(message: Message, target_channel: str, client: Telegra
     """
     try:
         text = await remove_links(message.message)
-        if message.media:
-            await client.send_file(entity=target_channel, file=message.media, caption=text)
-            logger.info("Media отправлено")
+        if await reject_message(text):
+            if message.media:
+                await client.send_file(entity=target_channel, file=message.media, caption=text)
+                logger.info("Media отправлено")
+            else:
+                await client.send_message(entity=target_channel, message=text)
+                logger.info("Text отправлен")
         else:
-            await client.send_message(entity=target_channel, message=text)
-            logger.info("Text отправлен")
+            logger.info(f"ОТКАЗ сообщения текс в черном списке: {text}")
     except Exception as e:
         logger.error(f"Ошибка при отправке сообщения: {e}")
 

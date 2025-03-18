@@ -24,3 +24,5 @@ stop_words: list[str] = ["подписаться", "@", "https", "подпиши
 target_channel: str = "@infa100go"
 
 list_channels: List[str] = ["@kosmo_off", "@cosmosprosto", "@kosmos149"]
+
+reject_list: List[str] = ["получить скидку", "инн", "узнать подробнее", "реклама"]
