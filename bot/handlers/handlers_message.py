@@ -1,11 +1,10 @@
 import asyncio
-from threading import Thread
 
 from aiogram import Router, types
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from telethon import TelegramClient
-from telethon.errors import PhoneCodeInvalidError, PhoneCodeExpiredError, AuthKeyError, PhoneNumberInvalidError
+from telethon.errors import PhoneCodeExpiredError
 
 from bot.keyboard import kb
 from bot.services.authorized import AuthState
@@ -14,7 +13,8 @@ from database.models import Channel, Users
 from database.services.crud_channel import add_channel, delete_channel
 from database.services.crud_user import get_user, update_user
 from bot import redis_cli
-from parser.parser import start_monitoring
+from parser.config import info_api_hash, info_phone, info_code
+from parser.run import start_monitoring
 from utils import logger
 
 message_router = Router()
@@ -23,7 +23,7 @@ message_router = Router()
 @message_router.message(lambda m: m.text.startswith("@"))
 async def create_channel(message: types.Message) -> None:
     """
-    Изменить целевой канал
+    Изменить целевой канал.
     """
     target_channel = message.text
     user: Users = await get_user(message.from_user.id)
@@ -32,9 +32,9 @@ async def create_channel(message: types.Message) -> None:
     await message.reply(f"В канал {message.text} посты будут перенаправляться", reply_markup=kb.inline_markup)
 
 @message_router.message(lambda m: m.text.startswith("https://t.me/"))
-async def create_channel(message: types.Message) -> None:
+async def add_channel_from_url(message: types.Message) -> None:
     """
-    Добавляет канал в список для парсинга
+    Добавляет канал в список для парсинга.
     """
     channel = Channel()
     name = "@" + message.text[13:]
@@ -46,39 +46,44 @@ async def create_channel(message: types.Message) -> None:
 @message_router.message(lambda m: m.text.startswith("-"))
 async def drop_channel(message: types.Message) -> None:
     """
-    Удалить канал из списка для парсинга
+    Удалить канал из списка для парсинга.
     """
     name_channel = message.text[1:]
     await delete_channel(name_channel, message.from_user.id)
-    await message.reply(f"Канал '{name_channel}' удален из списка для парсинга ", reply_markup=kb.inline_markup)
-
+    await message.reply(f"Канал '{name_channel}' удален из списка для парсинга", reply_markup=kb.inline_markup)
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_id))
 async def process_api_id(message: types.Message, state: FSMContext) -> None:
-    """Изменяет(добавляет) api_id"""
+    """
+    Изменяет (добавляет) api_id.
+    """
+    try:
+        api_id = int(message.text)
+        user: Users = await get_user(message.from_user.id)
+        user.api_id = api_id
+        await update_user(user)
+        await state.update_data(api_id=api_id)
 
-    api_id = int(message.text)
-    user: Users = await get_user(message.from_user.id)
-    user.api_id = api_id
-    await update_user(user)
-    await state.update_data(api_id=api_id)
-    if not user.api_hash:
-        await message.answer("Введите API_HASh")
-        await state.set_state(AuthState.waiting_for_api_hash)
-    else:
-        await message.answer("Введите телефон ")
-        await state.set_state(AuthState.waiting_for_phone)
+        if not user.api_hash:
+            await message.answer(info_api_hash)
+            await state.set_state(AuthState.waiting_for_api_hash)
+        else:
+            await message.answer(info_phone)
+            await state.set_state(AuthState.waiting_for_phone)
+    except ValueError:
+        await message.answer("Некорректный API ID. Введите число.")
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_hash))
 async def process_api_hash(message: types.Message, state: FSMContext) -> None:
-    """Изменяет(добавляет) api_hash"""
-
+    """
+    Изменяет (добавляет) api_hash.
+    """
     api_hash = message.text
     user: Users = await get_user(message.from_user.id)
     user.api_hash = api_hash
     await update_user(user)
     await state.update_data(api_hash=api_hash)
-    await message.answer("Введите телефон в формате +71234567890")
+    await message.answer(info_phone)
     await state.set_state(AuthState.waiting_for_phone)
 
 @message_router.message(StateFilter(AuthState.waiting_for_phone))
@@ -95,37 +100,28 @@ async def process_phone(message: types.Message, state: FSMContext):
     await update_user(user)
     await state.update_data(phone=phone)
 
-    client = TelegramClient(f"session_{user.id}", user.api_id, user.api_hash)
+    async with TelegramClient(f"session_{user.id}", user.api_id, user.api_hash) as client:
+        try:
+            if not await client.is_user_authorized():
+                sent_code = await client.send_code_request(phone)
+                phone_code_hash = sent_code.phone_code_hash
+                await state.update_data(phone_code_hash=phone_code_hash)
 
-    try:
-        await client.connect()
+                data_user = user.to_dict()
+                data_user["phone_code_hash"] = phone_code_hash
+                redis_cli.save_user_data(str(user.id), data_user)
 
-        if not await client.is_user_authorized():
-            sent_code = await client.send_code_request(phone)
-            phone_code_hash = sent_code.phone_code_hash
-            await state.update_data(phone_code_hash=phone_code_hash)
-
-            data_user = user.to_dict()
-            data_user["phone_code_hash"] = phone_code_hash
-            redis_cli.save_user_data(str(user.id), data_user)
-
-            await message.answer("Код отправлен. Введите его в формате: x1xx2x3x4x5\n"
-                                 "где 'x' это любой не числовой символ\n"
-                                 "Пример ваш код 11111\n"
-                                 "Ваше сообщение фыв1выу1выфы1ввфыв1вфы1")
-
-            await state.set_state(AuthState.waiting_for_code)
-
-    except Exception as e:
-        logger.error(f"Ошибка при отправке кода: {e}")
-        await message.answer("Произошла ошибка при отправке кода. Попробуйте снова.")
-    finally:
-        await client.disconnect()
-
+                await message.answer(info_code)
+                await state.set_state(AuthState.waiting_for_code)
+        except Exception as e:
+            logger.error(f"Ошибка при отправке кода: {e}")
+            await message.answer("Произошла ошибка при отправке кода. Попробуйте снова.")
 
 @message_router.message(StateFilter(AuthState.waiting_for_code))
-async def process_code(message: types.Message, state: FSMContext):
-    """Авторизация по коду"""
+async def process_code(message: types.Message, state: FSMContext) -> None:
+    """
+    Авторизация по коду.
+    """
     code = "".join([char for char in message.text if char.isdigit()])
     user_id = str(message.from_user.id)
     data = redis_cli.get_user_data(user_id)
@@ -135,11 +131,7 @@ async def process_code(message: types.Message, state: FSMContext):
     phone = data["phone"]
     phone_code_hash = data["phone_code_hash"]
 
-    client = TelegramClient(f"session_{user_id}", api_id, api_hash)
-
-    try:
-        await client.connect()
-
+    async with TelegramClient(f"session_{user_id}", api_id, api_hash) as client:
         try:
             await client.sign_in(phone=phone, code=code, phone_code_hash=phone_code_hash)
             await message.answer("Авторизация прошла успешно!")
@@ -149,20 +141,14 @@ async def process_code(message: types.Message, state: FSMContext):
             redis_cli.save_session(user_id, {"session": "active"})
 
             user: Users = await get_user(message.from_user.id)
-
-            asyncio.create_task(start_monitoring(client, user))
-
+            asyncio.create_task(start_monitoring(client, user.list_channels(), user.target_channel))
 
         except PhoneCodeExpiredError:
             await message.answer("Срок действия кода истек. Запрашиваю новый код...")
             sent_code = await client.send_code_request(phone)
             phone_code_hash = sent_code.phone_code_hash
             await state.update_data(phone_code_hash=phone_code_hash)
-            await message.answer("Новый код отправлен. Введите его:")
-            return
-
-    except Exception as e:
-        logger.error(f"Ошибка при авторизации: {e}")
-        await message.answer("Произошла ошибка при авторизации. Попробуйте снова.")
-    finally:
-        await client.disconnect()
+            await message.answer(info_code)
+        except Exception as e:
+            logger.error(f"Ошибка при авторизации: {e}")
+            await message.answer("Произошла ошибка при авторизации. Попробуйте снова.")
