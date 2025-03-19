@@ -3,10 +3,11 @@ from typing import List
 from telethon.tl.types import Message
 from telethon import TelegramClient
 
+from parser.decorators import retry_on_exception
 from parser.utils import remove_links, reject_message
 from utils import logger
 
-
+@retry_on_exception(retries=3, delay=2)
 async def forward_message(message: Message, target_channel: str, client: TelegramClient):
     """
     Пересылает сообщение в целевой канал.

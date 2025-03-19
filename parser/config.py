@@ -18,11 +18,12 @@ info_code: str = "Код отправлен. Введите его в форма
             "Пример ваш код 11111\n" \
             "Ваше сообщение фыв1выу1fds1dsf1вфы1"
 
+# Parser black lists
 stop_words: list[str] = ["подписаться", "@", "https", "подпишись", "подписывайся", "подписка", "HTTPS", "https", "the экономист",
-              "wildberries", "ozon", "реклама", "insider-t"]
+              "wildberries", "ozon", "реклама", "insider-t", "узнать подробнее", "подробнее"]
 
 target_channel: str = "@infa100go"
 
 list_channels: List[str] = ["@kosmo_off", "@cosmosprosto", "@kosmos149"]
 
-reject_list: List[str] = ["получить скидку", "инн", "узнать подробнее", "реклама"]
+reject_list: List[str] = ["получить скидку", "инн", "реклама"]

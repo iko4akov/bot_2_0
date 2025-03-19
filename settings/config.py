@@ -22,4 +22,4 @@ POSTGRES_PORT = os.getenv('POSTGRES_PORT')
 
 
 # Check admin
-ADMINS = [os.getenv('ADMIN_TG1')]
+ADMINS = [int(value) for key, value in os.environ.items() if key.startswith('ADMIN_TG')]
