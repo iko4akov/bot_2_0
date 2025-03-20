@@ -21,11 +21,11 @@ async def start_bot() -> None:
     try:
         await dp.start_polling(bot)
     except Exception as e:
-        logger.error(f"An error occurred while starting the bot: {e}")
+        logger.error(f"Произошла ошибка при запуске бота: {e}")
         raise
 
 if __name__ == "__main__":
     try:
         asyncio.run(start_bot())
     except KeyboardInterrupt:
-        logger.info("Bot stopped by user.")
+        logger.info("Бот остановлен пользователем.")
