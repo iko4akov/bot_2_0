@@ -10,12 +10,22 @@ from utils import logger
 
 
 async def start_bot() -> None:
-    logger.info("Bot running....")
+    """Запуск бота."""
+    logger.info("Bot is starting...")
+
     dp.include_router(router)
     dp.include_router(parser_router)
     dp.include_router(message_router)
     dp.include_router(admin_router)
-    await dp.start_polling(bot)
+
+    try:
+        await dp.start_polling(bot)
+    except Exception as e:
+        logger.error(f"An error occurred while starting the bot: {e}")
+        raise
 
 if __name__ == "__main__":
-    asyncio.run(start_bot())
+    try:
+        asyncio.run(start_bot())
+    except KeyboardInterrupt:
+        logger.info("Bot stopped by user.")

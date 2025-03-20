@@ -5,7 +5,7 @@ from aiogram.types import Message
 from database.models import Users
 from bot.constants.constans import INFO_MESSAGE
 from bot.keyboard import kb
-from database.services.crud_user import create_user
+from database.services.crud_user import create_user, get_user
 
 router = Router()
 
@@ -16,13 +16,14 @@ async def command_start_handler(message: Message) -> None:
     Просто выкидывает меню команда: /start
     """
     new_user = Users.from_message(message)
-
-    await create_user(new_user)
-    await message.answer(INFO_MESSAGE, reply_markup=kb.inline_markup)
+    check_user = await get_user(message.from_user.id)
+    if not check_user:
+        await create_user(new_user)
+    await message.answer(INFO_MESSAGE, reply_markup=kb.get_inline_markup())
 
 @router.message(lambda m: m.text == 'Меню')
 async def menu(message: Message):
     """
     Просто выкидывает меню команда: Меню
     """
-    await message.answer(INFO_MESSAGE, reply_markup=kb.inline_markup)
+    await message.answer(INFO_MESSAGE, reply_markup=kb.get_inline_markup())

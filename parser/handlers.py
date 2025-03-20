@@ -1,5 +1,4 @@
 from sqlite3 import OperationalError
-
 from telethon import events, TelegramClient
 from parser.monitoring import forward_message
 from utils import logger

@@ -3,7 +3,7 @@ from typing import List
 from settings.config import API_ID, API_HASH
 
 
-api_id: int = API_ID
+api_id: int = int(API_ID)
 api_hash: str = API_HASH
 
 # Message answer

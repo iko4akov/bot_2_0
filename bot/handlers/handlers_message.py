@@ -29,7 +29,7 @@ async def create_channel(message: types.Message) -> None:
     user: Users = await get_user(message.from_user.id)
     user.target_channel = target_channel
     await update_user(user)
-    await message.reply(f"В канал {message.text} посты будут перенаправляться", reply_markup=kb.inline_markup)
+    await message.reply(f"В канал {message.text} посты будут перенаправляться", reply_markup=kb.get_inline_markup())
 
 @message_router.message(lambda m: m.text.startswith("https://t.me/"))
 async def add_channel_from_url(message: types.Message) -> None:
@@ -41,7 +41,7 @@ async def add_channel_from_url(message: types.Message) -> None:
     channel.name = name
     channel.user_id = message.from_user.id
     await add_channel(channel)
-    await message.reply(f"Канал {message.text} добавлен в ваш список", reply_markup=kb.inline_markup)
+    await message.reply(f"Канал {message.text} добавлен в ваш список", reply_markup=kb.get_inline_markup())
 
 @message_router.message(lambda m: m.text.startswith("-"))
 async def drop_channel(message: types.Message) -> None:
@@ -50,7 +50,7 @@ async def drop_channel(message: types.Message) -> None:
     """
     name_channel = message.text[1:]
     await delete_channel(name_channel, message.from_user.id)
-    await message.reply(f"Канал '{name_channel}' удален из списка для парсинга", reply_markup=kb.inline_markup)
+    await message.reply(f"Канал '{name_channel}' удален из списка для парсинга", reply_markup=kb.get_inline_markup())
 
 @message_router.message(StateFilter(AuthState.waiting_for_api_id))
 async def process_api_id(message: types.Message, state: FSMContext) -> None:

@@ -46,7 +46,7 @@ class Users(Base):
     def from_message(cls, message: Message):
         return cls(
             id=message.from_user.id,
-            username=message.from_user.username,
+            username=message.from_user.username
         )
 
 class Channel(Base):

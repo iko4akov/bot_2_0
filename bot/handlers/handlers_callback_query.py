@@ -110,11 +110,11 @@ async def add_api_id(message: types.Message) -> None:
     if api_data.isdigit():
         user.api_id = int(api_data)
         await update_user(user)
-        await message.reply(f"API_ID {api_data} успешно добавлен.", reply_markup=kb.inline_markup)
+        await message.reply(f"API_ID {api_data} успешно добавлен.", reply_markup=kb.get_inline_markup())
     elif len(api_data) == 32:
         user.api_hash = api_data
         await update_user(user)
-        await message.reply(f"API_HASH {api_data} успешно добавлен.", reply_markup=kb.inline_markup)
+        await message.reply(f"API_HASH {api_data} успешно добавлен.", reply_markup=kb.get_inline_markup())
     else:
         await message.reply("Некорректный формат API_ID или API_HASH. Пожалуйста, попробуйте снова.")
 
