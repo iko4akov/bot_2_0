@@ -1,9 +1,18 @@
+from typing import Dict, Any
+
 from database.models import Users
 from utils import logger
 
 
-async def check_data(user: Users):
+async def check_data(user: Users) -> Dict[str, Any]:
+    """
+   Проверяет наличие обязательных данных у пользователя.
+
+   :param user: Объект пользователя.
+   :return: Словарь с результатом проверки и ошибками (если есть).
+   """
     errors = {}
+
     if not user.api_id:
         errors['api_id'] = "Отсутствует API_ID"
     if not user.api_hash:
@@ -17,7 +26,13 @@ async def check_data(user: Users):
         logger.warning(f"Ошибки при проверки данных {errors}")
         return {"success": False, "errors": errors}
 
-    return {"succes": True}
+    return {"success": True}
 
 def validate_phone_number(phone: str) -> bool:
+    """
+    Проверяет, соответствует ли номер телефона международному формату.
+
+    :param phone: Номер телефона.
+    :return: True, если номер соответствует формату, иначе False.
+    """
     return phone.startswith("+") and phone[1:].isdigit()

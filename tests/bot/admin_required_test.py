@@ -15,12 +15,13 @@ async def test_admin_required_with_admin():
 
     # Мокируем функцию is_admin, чтобы она возвращала True для этого ID
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("bot.decorators.admin_required.is_admin", lambda x: True)
+        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id, admins: True)
 
         # Мокируем обработчик, который должен быть вызван для администратора
         mock_handler = AsyncMock()
         wrapped_handler = admin_required(mock_handler)
 
+        mp.setattr("settings.config.ADMINS", [123, 145])
         # Вызываем обернутый обработчик
         await wrapped_handler(mock_message)
 
@@ -32,7 +33,6 @@ async def test_admin_required_with_admin():
 
 @pytest.mark.asyncio
 async def test_admin_required_with_non_admin():
-    # Создаем мок для сообщения от не-администратора
     mock_message = MagicMock(spec=Message)
     mock_message.from_user = MagicMock(spec=User)
     mock_message.from_user.id = 5  # ID не-администратора
@@ -40,7 +40,7 @@ async def test_admin_required_with_non_admin():
 
     # Мокируем функцию is_admin, чтобы она возвращала False для этого ID
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("bot.decorators.admin_required.is_admin", lambda x: False)
+        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id, admins: user_id in admins)
 
         # Мокируем обработчик, который не должен быть вызван для не-администратора
         mock_handler = AsyncMock()
@@ -58,6 +58,6 @@ async def test_admin_required_with_non_admin():
 def test_is_admin():
     """Тестируем функцию is_admin"""
     admins = [123, 456]
-    assert True == is_admin(123, admins)
-    assert True == is_admin(456, admins)
-    assert False == is_admin(789, admins)
+    assert is_admin(123, admins) == True
+    assert is_admin(456, admins) == True
+    assert is_admin(789, admins) == False

@@ -2,7 +2,6 @@ import asyncio
 
 from aiogram import Router, types
 from aiogram.fsm.context import FSMContext
-from telethon import TelegramClient
 
 from bot import bot, redis_cli
 from bot.keyboard import kb
@@ -28,10 +27,9 @@ async def callback_user(callback_query: types.CallbackQuery):
     id = callback_query.from_user.id
     user: Users = await get_user(id)
     if user:
-        await bot.answer_callback_query(callback_query.id, f'Готово')
         await bot.send_message(callback_query.from_user.id, f'{user.info()}')
     else:
-        await bot.answer_callback_query(callback_query.id, f'user not finded')
+        await bot.answer_callback_query(callback_query.id, f'Пользователь не найден.')
 
 @parser_router.callback_query(lambda c: c.data == 'parsing')
 async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> None:
@@ -40,6 +38,9 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
     """
     await callback_query.answer()
     user: Users = await get_user(callback_query.from_user.id)
+    if not user:
+        await bot.answer_callback_query(callback_query.id, "Пользователь не найден.")
+        return
     client = await get_client(api_id=user.api_id, api_hash=user.api_hash, user_id=user.id)
     clients[f"{user.id}"] = client
 
@@ -71,6 +72,7 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
 
         else:
             await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
+            logger.info(f"Парсер запущен! Пользвователь: {callback_query.from_user.id}")
             asyncio.create_task(start_monitoring(client, user.list_channels(), user.target_channel))
     except ConnectionError as e:
         logger.error(f"Ошибка подключения: {e}")
