@@ -17,10 +17,10 @@ async def forward_message(message: Message, target_channel: str, client: Telegra
         if await reject_message(text):
             if message.media:
                 await client.send_file(entity=target_channel, file=message.media, caption=text)
-                logger.info(f"Media из канала {target_channel} отправлено")
+                logger.info(f"Media отправлено в канал {target_channel} ")
             else:
                 await client.send_message(entity=target_channel, message=text)
-                logger.info(f"Text из канала {target_channel} отправлен")
+                logger.info(f"Text отправлен в канал {target_channel}")
         else:
             logger.warning(f"ОТКАЗ сообщения текст в черном списке: {text}")
     except Exception as e:
