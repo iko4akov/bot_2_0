@@ -24,20 +24,23 @@ async def callback_user(callback_query: types.CallbackQuery):
     Обрабатывает команду user. Возвращает информацию о пользователе
     """
     await callback_query.answer()
-    id = callback_query.from_user.id
-    user: Users = await get_user(id)
+    user_id = callback_query.from_user.id
+    user: Users = await get_user(user_id)
+
     if user:
-        await bot.send_message(callback_query.from_user.id, f'{user.info()}')
+        await bot.send_message(user_id, f'{user.info()}')
     else:
         await bot.answer_callback_query(callback_query.id, f'Пользователь не найден.')
 
 @parser_router.callback_query(lambda c: c.data == 'parsing')
 async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> None:
     """
-    Команда запуска парсинга постов.
+    Запускает парсер постов.
     """
     await callback_query.answer()
-    user: Users = await get_user(callback_query.from_user.id)
+    user_id = callback_query.from_user.id
+    user: Users = await get_user(user_id)
+
     if not user:
         await bot.answer_callback_query(callback_query.id, "Пользователь не найден.")
         return
@@ -49,13 +52,13 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
         if not await client.is_user_authorized():
             if not user.api_id:
                 await callback_query.answer("Запускаем сбор и репост постов...")
-                await bot.send_message(callback_query.from_user.id, info_api_id)
+                await bot.send_message(user_id, info_api_id)
                 await state.set_state(AuthState.waiting_for_api_id)
             elif not user.api_hash:
-                await bot.send_message(callback_query.from_user.id, info_api_hash)
+                await bot.send_message(user_id, info_api_hash)
                 await state.set_state(AuthState.waiting_for_api_hash)
             elif not user.phone:
-                await bot.send_message(callback_query.from_user.id, info_phone)
+                await bot.send_message(user_id, info_phone)
                 await state.set_state(AuthState.waiting_for_phone)
             else:
                 sent_code = await client.send_code_request(user.phone)
@@ -71,20 +74,20 @@ async def run_parser(callback_query: types.CallbackQuery, state: FSMContext) -> 
                 await state.set_state(AuthState.waiting_for_code)
 
         else:
-            await bot.send_message(callback_query.from_user.id, "Парсер запущен!")
-            logger.info(f"Парсер запущен! Пользвователь: {callback_query.from_user.id}")
+            await bot.send_message(user_id, "Парсер запущен!")
+            logger.info(f"Парсер запущен! Пользвователь: {user_id}")
             asyncio.create_task(start_monitoring(client, user.list_channels(), user.target_channel))
     except ConnectionError as e:
         logger.error(f"Ошибка подключения: {e}")
-        await bot.send_message(callback_query.from_user.id, "Не удалось подключиться к Telegram.")
+        await bot.send_message(user_id, "Не удалось подключиться к Telegram.")
     except Exception as e:
         logger.error(f"Неизвестная ошибка: {e}")
-        await bot.send_message(callback_query.from_user.id, "Произошла ошибка при запуске парсера.")
+        await bot.send_message(user_id, "Произошла ошибка при запуске парсера.")
 
 @parser_router.callback_query(lambda c: c.data == "stop")
 async def stop_parser(callback_query: types.CallbackQuery) -> None:
     """
-    Команда остановки парсера.
+    Останавливает парсер.
     """
     await callback_query.answer()
     user_id = str(callback_query.from_user.id)
@@ -94,17 +97,18 @@ async def stop_parser(callback_query: types.CallbackQuery) -> None:
         try:
             await client.disconnect()
             del clients[user_id]
-            await bot.send_message(callback_query.from_user.id, "Парсер остановлен")
+            await bot.send_message(user_id, "Парсер остановлен")
         except Exception as e:
             logger.error(f"Ошибка при остановке парсера: {e}")
-            await bot.send_message(callback_query.from_user.id, "Произошла ошибка при остановке парсера.")
+            await bot.send_message(user_id, "Произошла ошибка при остановке парсера.")
     else:
-        await bot.send_message(callback_query.from_user.id, "Парсер не был запущен.")
+        await bot.send_message(user_id, "Парсер не был запущен.")
 
 @parser_router.message(lambda m: m.text.lower().startswith("api+"))
 async def add_api_id(message: types.Message) -> None:
     """
-    Изменяет api_id и api_hash пользователя.
+    Изменяет API_ID или API_HASH пользователя.
+    Формат команды: api+<API_ID> или api+<API_HASH>
     """
     user = await get_user(message.from_user.id)
     api_data = message.text[4:].strip()
@@ -122,11 +126,25 @@ async def add_api_id(message: types.Message) -> None:
 
 @parser_router.message(lambda m: m.text.lower().startswith("один"))
 async def one_for(message: types.Message):
-    num = int(message.text[4])
-    limit = int(message.text[6])
+    """
+    Запускает мониторинг одного канала.
+    Формат команды: один <номер> <лимит>
+    """
+    try:
+        num = int(message.text.split()[1])
+        limit = int(message.text.split()[2])
+    except (IndexError, ValueError):
+        await message.reply("Некорректный формат команды. Используйте: один <номер> <лимит>")
+        return
+
     user: Users = await get_user(message.from_user.id)
     list_channels = user.list_channels()
     target_channel = user.target_channel
-    client = clients.get(message.from_user.id)
+    client = clients.get(str(message.from_user.id))
+
+    if not client:
+        await message.reply("Парсер не запущен. Запустите парсер перед выполнением этой команды.")
+        return
 
     await one_for_list(client=client, limit=limit, num=num, list_channels=list_channels, target_channel=target_channel)
+    await message.reply(f"Мониторинг канала {num} запущен с лимитом {limit}.")
