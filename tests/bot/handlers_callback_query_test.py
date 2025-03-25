@@ -2,17 +2,24 @@ import pytest
 
 from unittest.mock import MagicMock, AsyncMock, patch
 
+from aiogram.types import CallbackQuery
+
 from bot.handlers.handlers_callback_query import callback_user
+from database.models import Users
 
 
 @pytest.mark.asyncio
 async def test_callback_user():
 
-    mock_callback_query = MagicMock()
-    mock_callback_query.from_user.id = 123456
+    mock_callback_query = MagicMock(spec=CallbackQuery)
     mock_callback_query.id = 1
+    mock_callback_query.answer = AsyncMock()
 
-    mock_user = MagicMock()
+    mock_user = MagicMock(spec=Users)
+
+    mock_callback_query.from_user = mock_user
+    mock_user.id = 123456
+
     mock_user.info.return_value = {
         "Ваш id": mock_callback_query.from_user.id,
         "Ваш ник": "qwerty"
