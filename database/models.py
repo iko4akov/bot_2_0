@@ -33,7 +33,7 @@ class Users(Base):
     def info(self) -> str:
         return f"Ваш айди: {self.id}\n" \
                f"Ваш ник: {self.username}\n" \
-               f"Список ваших каналов: {self.list_channels()}\n" \
+               f"Список ваших каналов:\n{self.get_channels_for_info()}" \
                f"API_ID: {self.api_id}\n" \
                f"API_HASH: {self.api_hash}\n" \
                f"Phone: {self.phone}\n" \
@@ -41,6 +41,13 @@ class Users(Base):
 
     def list_channels(self) -> list:
         return [channel.name for channel in self.channel]
+
+    def get_channels_for_info(self):
+        info_message = ""
+        channels = self.list_channels()
+        for i in range(len(channels)):
+            info_message += f"{i+1} - {channels[i]}\n"
+        return info_message
 
     @classmethod
     def from_message(cls, message: Message):
