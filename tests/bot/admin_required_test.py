@@ -4,6 +4,13 @@ from aiogram.types import Message, User
 
 from bot.decorators.admin_required import admin_required, is_admin
 
+def test_is_admin():
+    """Тестируем функцию is_admin"""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr("settings.config.ADMINS", [123, 145])
+        assert is_admin(123) == True
+        assert is_admin(456) == False
+
 
 @pytest.mark.asyncio
 async def test_admin_required_with_admin():
@@ -15,7 +22,7 @@ async def test_admin_required_with_admin():
 
     # Мокируем функцию is_admin, чтобы она возвращала True для этого ID
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id, admins: True)
+        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id: True)
 
         # Мокируем обработчик, который должен быть вызван для администратора
         mock_handler = AsyncMock()
@@ -40,7 +47,7 @@ async def test_admin_required_with_non_admin():
 
     # Мокируем функцию is_admin, чтобы она возвращала False для этого ID
     with pytest.MonkeyPatch.context() as mp:
-        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id, admins: user_id in admins)
+        mp.setattr("bot.decorators.admin_required.is_admin", lambda user_id: False)
 
         # Мокируем обработчик, который не должен быть вызван для не-администратора
         mock_handler = AsyncMock()
@@ -53,11 +60,3 @@ async def test_admin_required_with_non_admin():
         mock_handler.assert_not_called()
         # Проверяем, что reply был вызван с правильным сообщением
         mock_message.reply.assert_awaited_once_with("У вас нет прав администратора.")
-
-
-def test_is_admin():
-    """Тестируем функцию is_admin"""
-    admins = [123, 456]
-    assert is_admin(123, admins) == True
-    assert is_admin(456, admins) == True
-    assert is_admin(789, admins) == False

@@ -26,7 +26,7 @@ async def test_callback_user():
             patch("bot.bot", mock_bot):
 
         # Вызываем тестируемую функцию
-        await callback_user(mock_callback_query)
+        callback_user(mock_callback_query)
 
         # Проверяем, что метод answer был вызван
         mock_callback_query.answer.assert_called_once()
